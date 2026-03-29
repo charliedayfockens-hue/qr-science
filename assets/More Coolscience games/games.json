@@ -1,119 +1,15 @@
 [
   {
-    "id": "chemistry-lab",
-    "title": "Virtual Chemistry Lab",
-    "category": "Chemistry",
-    "description": "Mix chemicals, run experiments, and discover reactions in a safe virtual environment.",
-    "tags": ["chemistry", "reactions", "lab"],
-    "url": "https://lab.bret.dk/",
-    "thumbnail": "🧪"
-  },
-  {
-    "id": "solar-system",
-    "title": "Solar System Scope",
-    "category": "Astronomy",
-    "description": "Explore the solar system in real-time 3D. Track planets, moons, and satellites.",
-    "tags": ["space", "planets", "astronomy"],
-    "url": "https://www.solarsystemscope.com/",
-    "thumbnail": "🪐"
-  },
-  {
-    "id": "human-body",
-    "title": "Zygote Body",
-    "category": "Biology",
-    "description": "Explore the human body in 3D. Peel back layers to see muscles, organs, and bones.",
-    "tags": ["biology", "anatomy", "body"],
-    "url": "https://www.zygotebody.com/",
-    "thumbnail": "🫁"
-  },
-  {
-    "id": "circuit-builder",
-    "title": "Circuit Builder",
-    "category": "Physics",
-    "description": "Build and test electrical circuits with resistors, capacitors, LEDs, and more.",
-    "tags": ["electricity", "circuits", "physics"],
-    "url": "https://phet.colorado.edu/sims/html/circuit-construction-kit-dc/latest/circuit-construction-kit-dc_en.html",
-    "thumbnail": "⚡"
-  },
-  {
-    "id": "wave-interference",
-    "title": "Wave Interference",
-    "category": "Physics",
-    "description": "Visualize wave interference patterns. Adjust frequency, amplitude, and observe the results.",
-    "tags": ["waves", "physics", "optics"],
-    "url": "https://phet.colorado.edu/sims/html/wave-interference/latest/wave-interference_en.html",
-    "thumbnail": "🌊"
-  },
-  {
-    "id": "gravity-force",
-    "title": "Gravity Force Lab",
-    "category": "Physics",
-    "description": "Visualize gravitational force between objects and experiment with mass and distance.",
-    "tags": ["gravity", "forces", "physics"],
-    "url": "https://phet.colorado.edu/sims/html/gravity-force-lab/latest/gravity-force-lab_en.html",
-    "thumbnail": "🌍"
-  },
-  {
-    "id": "molecule-shapes",
-    "title": "Molecule Shapes",
-    "category": "Chemistry",
-    "description": "Explore the 3D structure of molecules. Build shapes from atoms and observe bond angles.",
-    "tags": ["molecules", "chemistry", "3D"],
-    "url": "https://phet.colorado.edu/sims/html/molecule-shapes/latest/molecule-shapes_en.html",
-    "thumbnail": "⚗️"
-  },
-  {
-    "id": "energy-skate",
-    "title": "Energy Skate Park",
-    "category": "Physics",
-    "description": "Explore conservation of energy with a skater on a ramp. Add friction and see thermal energy.",
-    "tags": ["energy", "physics", "motion"],
-    "url": "https://phet.colorado.edu/sims/html/energy-skate-park/latest/energy-skate-park_en.html",
-    "thumbnail": "🛹"
-  },
-  {
-    "id": "pendulum-lab",
-    "title": "Pendulum Lab",
-    "category": "Physics",
-    "description": "Experiment with pendulums. Change length, mass, angle and explore simple harmonic motion.",
-    "tags": ["pendulum", "physics", "motion"],
-    "url": "https://phet.colorado.edu/sims/html/pendulum-lab/latest/pendulum-lab_en.html",
-    "thumbnail": "🕰️"
-  },
-  {
-    "id": "plate-tectonics",
-    "title": "Plate Tectonics",
-    "category": "Earth Science",
-    "description": "Simulate Earth's tectonic plates. Create mountains, volcanoes, and ocean trenches.",
-    "tags": ["geology", "earth", "tectonics"],
-    "url": "https://phet.colorado.edu/sims/html/plate-tectonics/latest/plate-tectonics_en.html",
-    "thumbnail": "🌋"
-  },
-  {
-    "id": "gene-machine",
-    "title": "Gene Expression Essentials",
-    "category": "Biology",
-    "description": "Explore how genes are transcribed and translated into proteins inside a cell.",
-    "tags": ["genetics", "biology", "DNA"],
-    "url": "https://phet.colorado.edu/sims/html/gene-expression-essentials/latest/gene-expression-essentials_en.html",
-    "thumbnail": "🧬"
-  },
-  {
-    "id": "natural-selection",
-    "title": "Natural Selection",
-    "category": "Biology",
-    "description": "Simulate natural selection with bunnies. Introduce traits and watch evolution in action.",
-    "tags": ["evolution", "biology", "adaptation"],
-    "url": "https://phet.colorado.edu/sims/html/natural-selection/latest/natural-selection_en.html",
-    "thumbnail": "🐇"
-  },
-  {
-    "id": "lesson-12",
-    "title": "Lesson 12",
-    "category": "Interactive",
-    "description": "An interactive lesson simulation. Explore concepts and experiment hands-on.",
-    "tags": ["lesson", "interactive", "simulation"],
+    "id": "among-us",
+    "title": "Among Us",
+    "category": "Game",
+    "description": "Find the impostor among the crew. Complete tasks, vote out suspects, and survive!",
+    "tags": [
+      "multiplayer",
+      "strategy",
+      "social"
+    ],
     "url": "https://cdn-json.us/repo1/lesson-12",
-    "thumbnail": "📡"
+    "thumbnail": "🚀"
   }
 ]
