@@ -18,5 +18,39 @@
     "url": "https://1games.io/game/geometry-lite/",
     "thumbnail": "🔷",
     "allow": "autoplay; fullscreen; camera; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; microphone *"
+  },
+  {
+    "id": "level-devil-dash",
+    "title": "Level Devil Dash",
+    "category": "Game",
+    "description": "A devilishly tricky platformer — dodge traps, time your jumps, and survive each level!",
+    "tags": ["platformer", "arcade", "tricky"],
+    "url": "https://1games.io/game/devil-dash/",
+    "thumbnail": "😈",
+    "allow": "autoplay; fullscreen; camera; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; microphone *"
+  },
+  {
+    "id": "buckshot-roulette",
+    "title": "Buckshot Roulette",
+    "category": "Game",
+    "description": "A high-stakes game of chance. Load the shotgun, take your turn, and press your luck.",
+    "tags": ["strategy", "horror", "indie"],
+    "url": "https://machita66.com/b/buckshotroulette",
+    "thumbnail": "🎰",
+    "allow": "fullscreen",
+    "scrolling": "none",
+    "frameborder": "0"
+  },
+  {
+    "id": "tag",
+    "title": "Tag",
+    "category": "Game",
+    "description": "2, 3, or 4 player tag game! Chase your friends and don't get caught!",
+    "tags": ["multiplayer", "arcade", "party"],
+    "url": "https://w8.snokido.com/games/html5/tag234/index.html",
+    "thumbnail": "🏃",
+    "allow": "autoplay",
+    "scrolling": "no",
+    "frameborder": "0"
   }
 ]
