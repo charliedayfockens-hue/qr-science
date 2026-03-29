@@ -63,18 +63,29 @@ async function loadGamesAutomatically() {
             if (response.ok) {
                 const files = await response.json();
                 console.log('GitHub API returned:', files.length, 'items');
-                
-                gameFiles = files
-                    .filter(file => file.name.endsWith('.html'))
-                    .map(file => file.name);
-                
-                console.log('Found HTML files:', gameFiles);
-                
-                if (gameFiles.length > 0) {
-                    allGames = gameFiles.map(filename => ({
-                        filename: filename,
-                        displayName: formatGameName(filename)
+
+                const games = [];
+
+                // Single .html files
+                files
+                    .filter(file => file.type === 'file' && file.name.endsWith('.html'))
+                    .forEach(file => games.push({
+                        filename: file.name,
+                        displayName: formatGameName(file.name)
                     }));
+
+                // Folders (multi-file games — assumed to have index.html inside)
+                files
+                    .filter(file => file.type === 'dir')
+                    .forEach(file => games.push({
+                        filename: file.name + '/index.html',
+                        displayName: formatGameName(file.name)
+                    }));
+
+                console.log('Found games:', games.length);
+
+                if (games.length > 0) {
+                    allGames = games;
                     displayGames(allGames);
                     return;
                 }
@@ -100,22 +111,25 @@ async function loadGamesAutomatically() {
             const doc = parser.parseFromString(text, 'text/html');
             const links = doc.querySelectorAll('a');
             
-            gameFiles = [];
+            const games2 = [];
             links.forEach(link => {
                 const href = link.getAttribute('href');
-                if (href && href.endsWith('.html')) {
+                if (!href) return;
+                if (href.endsWith('.html')) {
                     const filename = href.split('/').pop().split('?')[0];
-                    gameFiles.push(filename);
+                    games2.push({ filename: filename, displayName: formatGameName(filename) });
+                } else if (href.endsWith('/') && href !== '../' && href !== './' && !href.startsWith('?')) {
+                    const folderName = href.replace(/\/$/, '').split('/').pop();
+                    if (folderName) {
+                        games2.push({ filename: folderName + '/index.html', displayName: formatGameName(folderName) });
+                    }
                 }
             });
-            
-            console.log('Found via folder listing:', gameFiles);
-            
-            if (gameFiles.length > 0) {
-                allGames = gameFiles.map(filename => ({
-                    filename: filename,
-                    displayName: formatGameName(filename)
-                }));
+
+            console.log('Found via folder listing:', games2);
+
+            if (games2.length > 0) {
+                allGames = games2;
                 displayGames(allGames);
                 return;
             }
