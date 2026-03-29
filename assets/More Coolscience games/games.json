@@ -4,12 +4,19 @@
     "title": "Among Us",
     "category": "Game",
     "description": "Find the impostor among the crew. Complete tasks, vote out suspects, and survive!",
-    "tags": [
-      "multiplayer",
-      "strategy",
-      "social"
-    ],
+    "tags": ["multiplayer", "strategy", "social"],
     "url": "https://cdn-json.us/repo1/lesson-12",
-    "thumbnail": "🚀"
+    "thumbnail": "🚀",
+    "allow": ""
+  },
+  {
+    "id": "geometry-dashmertry",
+    "title": "Geometry Dashmertry",
+    "category": "Game",
+    "description": "Jump, fly, and flip your way through dangerous passages in this rhythm-based platformer!",
+    "tags": ["platformer", "rhythm", "arcade"],
+    "url": "https://1games.io/game/geometry-lite/",
+    "thumbnail": "🔷",
+    "allow": "autoplay; fullscreen; camera; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; microphone *"
   }
 ]
