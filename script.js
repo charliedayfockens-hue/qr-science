@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setupGameViewer();
     setupRandomButton();
     setupRecentDropdown();
+    setupNewlyAddedDropdown();
+    updateNewlyAddedList();
     loadSavedTheme();
     loadSavedCloak();
     setupClock();
@@ -286,6 +288,8 @@ function displayGames(games) {
     // Get saved custom font if in custom theme
     const savedFont = localStorage.getItem('customFont');
     
+    detectNewGames(games);
+
     games.forEach((game, index) => {
         const button = document.createElement('button');
         button.className = 'game-button fade-in';
@@ -385,13 +389,9 @@ function setupGameViewer() {
     // ── Fullscreen button ────────────────────────────────
     document.getElementById('fsBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        const frame = document.getElementById('gameFrame');
         const viewer = document.getElementById('gameViewer');
         if (!document.fullscreenElement) {
-            // Try iframe first for true game fullscreen, fall back to viewer div
-            (frame.requestFullscreen || viewer.requestFullscreen.bind(viewer)).call(frame).catch(() => {
-                viewer.requestFullscreen().catch(err => console.log('Fullscreen failed:', err));
-            });
+            viewer.requestFullscreen().catch(err => console.log('Fullscreen failed:', err));
         } else {
             document.exitFullscreen();
         }
@@ -406,26 +406,6 @@ function setupGameViewer() {
         }
     });
 
-    // ── FPS slider ───────────────────────────────────────
-    const fpsSlider = document.getElementById('fpsSlider');
-    const fpsDisplay = document.getElementById('fpsDisplay');
-    fpsSlider.addEventListener('input', function() {
-        const val = parseInt(fpsSlider.value);
-        fpsDisplay.textContent = (val >= 120) ? '∞' : val;
-        try {
-            document.getElementById('gameFrame').contentWindow.postMessage({ type: 'fpsLimit', value: val }, '*');
-        } catch(err) {}
-    });
-
-    // ── Volume slider ─────────────────────────────────────
-    const volSlider = document.getElementById('volControl');
-    const volDisplay = document.getElementById('volDisplay');
-    volSlider.addEventListener('input', function() {
-        volDisplay.textContent = volSlider.value + '%';
-        try {
-            document.getElementById('gameFrame').contentWindow.postMessage({ type: 'volume', value: volSlider.value / 100 }, '*');
-        } catch(err) {}
-    });
 }
 
 // Setup search functionality
@@ -1113,6 +1093,62 @@ function updateRecentGamesList() {
             style="display:block;width:100%;text-align:left;padding:8px 10px;margin:3px 0;background:rgba(102,126,234,.1);border:none;border-radius:8px;cursor:pointer;font-weight:600;color:#333;font-size:.9rem;">
             🎮 ${g.displayName}
         </button>`).join('');
+}
+
+// ===== RECENTLY ADDED GAMES =====
+function detectNewGames(games) {
+    const knownRaw = localStorage.getItem('knownGames');
+    const newlyAdded = JSON.parse(localStorage.getItem('newlyAddedGames') || '[]');
+
+    // Always update the known list for next comparison
+    localStorage.setItem('knownGames', JSON.stringify(games.map(g => g.filename)));
+
+    // First ever visit — just save the list, nothing to compare against yet
+    if (!knownRaw) return;
+
+    const known = new Set(JSON.parse(knownRaw));
+    const fresh = games.filter(g => !known.has(g.filename));
+    if (fresh.length === 0) return;
+
+    const existingFilenames = new Set(newlyAdded.map(g => g.filename));
+    fresh.forEach(g => {
+        if (!existingFilenames.has(g.filename)) {
+            newlyAdded.unshift({ filename: g.filename, displayName: g.displayName });
+        }
+    });
+
+    localStorage.setItem('newlyAddedGames', JSON.stringify(newlyAdded));
+    updateNewlyAddedList();
+}
+
+function updateNewlyAddedList() {
+    const list = JSON.parse(localStorage.getItem('newlyAddedGames') || '[]');
+    const el = document.getElementById('newlyAddedList');
+    if (!el) return;
+    if (list.length === 0) {
+        el.innerHTML = '<p style="color:#999;font-size:.85rem">No new games detected yet</p>';
+        return;
+    }
+    el.innerHTML = list.map(g => `
+        <button onclick="openGameSidebar('${g.filename}','${g.displayName.replace(/'/g,"\\'")}');document.getElementById('newlyAddedDropdown').classList.remove('active');"
+            style="display:block;width:100%;text-align:left;padding:8px 10px;margin:3px 0;background:rgba(102,126,234,.1);border:none;border-radius:8px;cursor:pointer;font-weight:600;color:#333;font-size:.9rem;">
+            Added: ${g.displayName}
+        </button>`).join('');
+}
+
+function setupNewlyAddedDropdown() {
+    const toggle = document.getElementById('newlyAddedToggle');
+    const dropdown = document.getElementById('newlyAddedDropdown');
+    if (!toggle || !dropdown) return;
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('active');
+    });
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && e.target !== toggle) {
+            dropdown.classList.remove('active');
+        }
+    });
 }
 
 function setupRecentDropdown() {
