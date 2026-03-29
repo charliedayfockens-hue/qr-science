@@ -1,20 +1,30 @@
 /* ============================================================
    MORE COOL SCIENCE GAMES — APP.JS
+   To add a game: edit games.json only. No JS changes needed.
+
+   Supported games.json fields per entry:
+     id          - unique string
+     title       - display name
+     category    - used in filter nav
+     description - shown in modal
+     tags        - array of strings
+     url         - iframe src
+     thumbnail   - emoji
+     allow       - (optional) iframe allow attribute
+     scrolling   - (optional) "yes" | "no", default "no"
+     frameborder - (optional) "0" | "1", default "0"
    ============================================================ */
 
-/** @type {Game[]} */
 let allGames = [];
 let filteredGames = [];
 let activeCategory = 'All';
 
-const gameGrid    = document.getElementById('gameGrid');
-const searchInput = document.getElementById('searchInput');
-const searchClear = document.getElementById('searchClear');
-const resultCount = document.getElementById('resultCount');
-const categoryNav = document.getElementById('categoryNav');
-const emptyState  = document.getElementById('emptyState');
-
-// Modal elements
+const gameGrid     = document.getElementById('gameGrid');
+const searchInput  = document.getElementById('searchInput');
+const searchClear  = document.getElementById('searchClear');
+const resultCount  = document.getElementById('resultCount');
+const categoryNav  = document.getElementById('categoryNav');
+const emptyState   = document.getElementById('emptyState');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose   = document.getElementById('modalClose');
 const modalEmoji   = document.getElementById('modalEmoji');
@@ -22,7 +32,6 @@ const modalTitle   = document.getElementById('modalTitle');
 const modalCategory = document.getElementById('modalCategory');
 const modalDesc    = document.getElementById('modalDesc');
 const modalTags    = document.getElementById('modalTags');
-const gameFrame    = document.getElementById('gameFrame');
 const btnFullscreen = document.getElementById('btnFullscreen');
 const btnOpen      = document.getElementById('btnOpen');
 
@@ -37,7 +46,7 @@ async function init() {
     applyFilters();
   } catch (err) {
     console.error('Failed to load games.json:', err);
-    gameGrid.innerHTML = '<p style="color:var(--accent3);padding:32px;font-family:var(--font-body)">Error loading games. Check games.json.</p>';
+    gameGrid.innerHTML = '<p style="color:#f87171;padding:32px;">Error loading games.json</p>';
   }
 }
 
@@ -97,7 +106,6 @@ function renderGrid() {
     <div class="game-card" data-id="${game.id}" style="animation-delay:${i * 40}ms">
       <div class="card-thumb">
         <span>${game.thumbnail}</span>
-        <div class="card-scan"></div>
       </div>
       <div class="card-body">
         <span class="card-category">${game.category}</span>
@@ -106,7 +114,7 @@ function renderGrid() {
         <div class="card-tags">
           ${game.tags.map(t => `<span class="tag">${t}</span>`).join('')}
         </div>
-        <button class="card-play">▶ Launch Simulation</button>
+        <button class="card-play">▶ Play</button>
       </div>
     </div>
   `).join('');
@@ -123,8 +131,8 @@ function updateResultCount() {
   const total = allGames.length;
   const shown = filteredGames.length;
   resultCount.textContent = shown === total
-    ? `${total} simulations`
-    : `${shown} of ${total} simulations`;
+    ? `${total} game${total !== 1 ? 's' : ''}`
+    : `${shown} of ${total} games`;
 }
 
 // ============================================================
@@ -143,16 +151,33 @@ searchClear.addEventListener('click', () => {
 });
 
 // ============================================================
-// MODAL
+// MODAL — all iframe attributes driven by games.json
 // ============================================================
+function buildIframe(game) {
+  const iframe = document.createElement('iframe');
+  iframe.id          = 'gameFrame';
+  iframe.src         = game.url;
+  iframe.width       = '100%';
+  iframe.height      = '100%';
+  iframe.frameBorder = game.frameborder ?? '0';
+  iframe.scrolling   = game.scrolling   ?? 'no';
+  if (game.allow) iframe.allow = game.allow;
+  iframe.style.cssText = 'display:block;border:none;width:100%;height:520px;';
+  return iframe;
+}
+
 function openModal(game) {
-  modalEmoji.textContent    = game.thumbnail;
-  modalTitle.textContent    = game.title;
-  modalCategory.textContent = game.category;
-  modalDesc.textContent     = game.description;
-  modalTags.innerHTML       = game.tags.map(t => `<span class="tag">${t}</span>`).join('');
-  gameFrame.src             = game.url;
-  btnOpen.href              = game.url;
+  modalEmoji.textContent     = game.thumbnail;
+  modalTitle.textContent     = game.title;
+  modalCategory.textContent  = game.category;
+  modalDesc.textContent      = game.description;
+  modalTags.innerHTML        = game.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  btnOpen.href               = game.url;
+
+  // Replace iframe completely so no stale attributes carry over
+  const wrap = document.getElementById('iframeWrap');
+  wrap.innerHTML = '';
+  wrap.appendChild(buildIframe(game));
 
   modalOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -161,28 +186,23 @@ function openModal(game) {
 function closeModal() {
   modalOverlay.classList.remove('open');
   document.body.style.overflow = '';
-  // Slight delay so animation plays before iframe unloads
-  setTimeout(() => { gameFrame.src = ''; }, 280);
+  setTimeout(() => {
+    const wrap = document.getElementById('iframeWrap');
+    if (wrap) wrap.innerHTML = '';
+  }, 280);
 }
 
 modalClose.addEventListener('click', closeModal);
-
-modalOverlay.addEventListener('click', (e) => {
-  if (e.target === modalOverlay) closeModal();
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
+modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ============================================================
 // FULLSCREEN
 // ============================================================
 btnFullscreen.addEventListener('click', () => {
-  const el = document.getElementById('gameFrame');
-  if (el.requestFullscreen) el.requestFullscreen();
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  const iframe = document.getElementById('gameFrame');
+  if (!iframe) return;
+  (iframe.requestFullscreen || iframe.webkitRequestFullscreen || iframe.mozRequestFullScreen).call(iframe);
 });
 
 // ============================================================
