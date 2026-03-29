@@ -19,34 +19,35 @@ let allGames = [];
 let filteredGames = [];
 let activeCategory = 'All';
 
-const gameGrid     = document.getElementById('gameGrid');
-const searchInput  = document.getElementById('searchInput');
-const searchClear  = document.getElementById('searchClear');
-const resultCount  = document.getElementById('resultCount');
-const categoryNav  = document.getElementById('categoryNav');
-const emptyState   = document.getElementById('emptyState');
-const modalOverlay = document.getElementById('modalOverlay');
-const modalClose   = document.getElementById('modalClose');
-const modalEmoji   = document.getElementById('modalEmoji');
-const modalTitle   = document.getElementById('modalTitle');
+const gameGrid      = document.getElementById('gameGrid');
+const searchInput   = document.getElementById('searchInput');
+const searchClear   = document.getElementById('searchClear');
+const resultCount   = document.getElementById('resultCount');
+const categoryNav   = document.getElementById('categoryNav');
+const emptyState    = document.getElementById('emptyState');
+const modalOverlay  = document.getElementById('modalOverlay');
+const modalClose    = document.getElementById('modalClose');
+const modalEmoji    = document.getElementById('modalEmoji');
+const modalTitle    = document.getElementById('modalTitle');
 const modalCategory = document.getElementById('modalCategory');
-const modalDesc    = document.getElementById('modalDesc');
-const modalTags    = document.getElementById('modalTags');
+const modalDesc     = document.getElementById('modalDesc');
+const modalTags     = document.getElementById('modalTags');
 const btnFullscreen = document.getElementById('btnFullscreen');
-const btnOpen      = document.getElementById('btnOpen');
+const btnOpen       = document.getElementById('btnOpen');
 
 // ============================================================
-// INIT
+// INIT — ./ ensures correct path on GitHub Pages subdirectories
 // ============================================================
 async function init() {
   try {
-    const res = await fetch('games.json');
+    const res = await fetch('./games.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     allGames = await res.json();
     buildCategoryNav();
     applyFilters();
   } catch (err) {
     console.error('Failed to load games.json:', err);
-    gameGrid.innerHTML = '<p style="color:#f87171;padding:32px;">Error loading games.json</p>';
+    gameGrid.innerHTML = '<p style="color:#f87171;padding:32px;font-family:sans-serif;">Error loading games.json — ' + err.message + '</p>';
   }
 }
 
@@ -155,10 +156,7 @@ searchClear.addEventListener('click', () => {
 // ============================================================
 function buildIframe(game) {
   const iframe = document.createElement('iframe');
-  iframe.id          = 'gameFrame';
   iframe.src         = game.url;
-  iframe.width       = '100%';
-  iframe.height      = '100%';
   iframe.frameBorder = game.frameborder ?? '0';
   iframe.scrolling   = game.scrolling   ?? 'no';
   if (game.allow) iframe.allow = game.allow;
@@ -167,14 +165,13 @@ function buildIframe(game) {
 }
 
 function openModal(game) {
-  modalEmoji.textContent     = game.thumbnail;
-  modalTitle.textContent     = game.title;
-  modalCategory.textContent  = game.category;
-  modalDesc.textContent      = game.description;
-  modalTags.innerHTML        = game.tags.map(t => `<span class="tag">${t}</span>`).join('');
-  btnOpen.href               = game.url;
+  modalEmoji.textContent    = game.thumbnail;
+  modalTitle.textContent    = game.title;
+  modalCategory.textContent = game.category;
+  modalDesc.textContent     = game.description;
+  modalTags.innerHTML       = game.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  btnOpen.href              = game.url;
 
-  // Replace iframe completely so no stale attributes carry over
   const wrap = document.getElementById('iframeWrap');
   wrap.innerHTML = '';
   wrap.appendChild(buildIframe(game));
@@ -200,9 +197,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // FULLSCREEN
 // ============================================================
 btnFullscreen.addEventListener('click', () => {
-  const iframe = document.getElementById('gameFrame');
+  const iframe = document.getElementById('iframeWrap')?.querySelector('iframe');
   if (!iframe) return;
-  (iframe.requestFullscreen || iframe.webkitRequestFullscreen || iframe.mozRequestFullScreen).call(iframe);
+  const fn = iframe.requestFullscreen || iframe.webkitRequestFullscreen || iframe.mozRequestFullScreen;
+  if (fn) fn.call(iframe);
 });
 
 // ============================================================
