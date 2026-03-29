@@ -1408,30 +1408,6 @@ body.theme-matrix .game-button {
     gap: 10px;
     flex-shrink: 0;
 }
-.toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.toolbar-label {
-    color: rgba(255,255,255,0.55);
-    font-size: .78rem;
-    white-space: nowrap;
-    user-select: none;
-}
-.fps-slider, .vol-slider {
-    width: 80px;
-    height: 4px;
-    cursor: pointer;
-    accent-color: #667eea;
-}
-.fps-val, .vol-val {
-    color: rgba(255,255,255,0.8);
-    font-size: .78rem;
-    min-width: 34px;
-    text-align: right;
-    font-weight: 700;
-}
 .toolbar-btn {
     padding: 6px 13px;
     background: rgba(255,255,255,0.1);
@@ -1489,6 +1465,5 @@ body.theme-matrix .game-button {
 @media (max-width: 768px) {
     .leaderboard { right: 8px; top: 8px; max-width: 200px; }
     .toolbar-controls { gap: 8px; }
-    .fps-slider, .vol-slider { width: 60px; }
     .viewer-title { max-width: 120px; }
 }

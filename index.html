@@ -117,6 +117,15 @@
                     </div>
                 </div>
 
+                <!-- Recently added games dropdown -->
+                <div class="recent-dropdown-container">
+                    <button id="newlyAddedToggle" class="theme-toggle">🆕 Recently Added</button>
+                    <div id="newlyAddedDropdown" class="recent-dropdown">
+                        <h3 style="color:#667eea;margin-bottom:10px;font-size:1rem;">Recently Added</h3>
+                        <div id="newlyAddedList"><p style="color:#999;font-size:.85rem">No new games detected yet</p></div>
+                    </div>
+                </div>
+
                 <!-- Random game -->
                 <button id="randomBtn" class="random-btn">🎲 Random</button>
                 
@@ -214,16 +223,6 @@
         <div class="game-toolbar">
             <span id="viewerGameTitle" class="viewer-title">Game</span>
             <div class="toolbar-controls">
-                <div class="toolbar-group">
-                    <label class="toolbar-label">FPS Cap</label>
-                    <input type="range" id="fpsSlider" min="5" max="120" value="120" step="5" class="fps-slider">
-                    <span id="fpsDisplay" class="fps-val">&#8734;</span>
-                </div>
-                <div class="toolbar-group">
-                    <label class="toolbar-label">&#128266;</label>
-                    <input type="range" id="volControl" min="0" max="100" value="100" class="vol-slider">
-                    <span id="volDisplay" class="vol-val">100%</span>
-                </div>
                 <button class="toolbar-btn" id="fsBtn">&#9678; Fullscreen</button>
                 <button class="toolbar-btn exit-toolbar-btn" id="exitViewerBtn">&#10005; Exit</button>
             </div>
