@@ -44,11 +44,9 @@ function showView(name) {
     if (view) view.classList.add('active');
     const btn = document.querySelector(`.nav-btn[data-view="${name}"]`);
     if (btn) btn.classList.add('active');
-    // Reset favorites mode when leaving games view
+    // Reset favorites filter when leaving games view
     if (name !== 'games' && showingFavorites) {
-        showingFavorites = false;
-        const fav = document.getElementById('favoritesToggle');
-        if (fav) fav.textContent = '⭐ Favorites';
+        setFavoritesFilter(false);
     }
 }
 
@@ -179,17 +177,6 @@ function formatGameName(filename) {
 }
 
 // ===== IMAGE HELPERS =====
-function getGameImageUrl(displayName) {
-    let hash = 0;
-    for (let i = 0; i < displayName.length; i++) {
-        hash = ((hash << 5) - hash) + displayName.charCodeAt(i);
-        hash |= 0;
-    }
-    const lock = Math.abs(hash) % 10000;
-    const keyword = encodeURIComponent(displayName.toLowerCase());
-    return `https://loremflickr.com/300/300/${keyword},game?lock=${lock}`;
-}
-
 function getHashColor(name) {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
@@ -198,6 +185,70 @@ function getHashColor(name) {
     }
     const h = Math.abs(hash) % 360;
     return `hsl(${h}, 55%, 38%)`;
+}
+
+// Fetch a relevant image from Wikipedia (CORS-friendly, no API key needed)
+// Results are cached in localStorage so each game is only looked up once.
+async function fetchGameImage(displayName) {
+    const key = 'wikiimg_' + displayName;
+    const cached = localStorage.getItem(key);
+    if (cached === 'none') return null;
+    if (cached) return cached;
+
+    const searches = [
+        displayName + ' (video game)',
+        displayName + ' game',
+        displayName
+    ];
+    for (const term of searches) {
+        try {
+            const r = await fetch(
+                `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`,
+                { headers: { 'Accept': 'application/json' } }
+            );
+            if (r.ok) {
+                const d = await r.json();
+                if (d.thumbnail && d.thumbnail.source) {
+                    localStorage.setItem(key, d.thumbnail.source);
+                    return d.thumbnail.source;
+                }
+            }
+        } catch {}
+    }
+    localStorage.setItem(key, 'none');
+    return null;
+}
+
+// IntersectionObserver — loads images lazily as cards scroll into view
+let _imgObserver = null;
+function getImageObserver() {
+    if (_imgObserver) return _imgObserver;
+    _imgObserver = new IntersectionObserver(async (entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            _imgObserver.unobserve(entry.target);
+            const card = entry.target;
+            const name = card.dataset.gameName;
+            const imgDiv = card.querySelector('.card-img');
+            if (!name || !imgDiv) continue;
+            // Check local thumbnail first
+            const basename = card.dataset.basename;
+            if (basename) {
+                const localUrl = `assets/thumbnails/${basename}.jpg`;
+                const test = new Image();
+                test.onload = () => { imgDiv.style.backgroundImage = `url('${localUrl}')`; };
+                test.onerror = async () => {
+                    const url = await fetchGameImage(name);
+                    if (url) imgDiv.style.backgroundImage = `url('${url}')`;
+                };
+                test.src = localUrl;
+            } else {
+                const url = await fetchGameImage(name);
+                if (url) imgDiv.style.backgroundImage = `url('${url}')`;
+            }
+        }
+    }, { rootMargin: '200px 0px' });
+    return _imgObserver;
 }
 
 // ===== DISPLAY CARDS =====
@@ -213,34 +264,45 @@ function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
     if (noResults) noResults.style.display = 'none';
     grid.innerHTML = '';
 
+    const observer = getImageObserver();
+
     items.forEach((item, index) => {
         const card = document.createElement('button');
         card.className = 'game-card fade-in';
         card.style.animationDelay = `${index * 0.03}s`;
+        card.dataset.gameName = item.displayName;
+        card.dataset.basename = item.filename.replace(/\/index\.html$/, '').replace(/\.html$/, '');
 
-        // Image layer
+        // Image layer — color shown immediately, image loads lazily
         const imgDiv = document.createElement('div');
         imgDiv.className = 'card-img';
         imgDiv.style.backgroundColor = getHashColor(item.displayName);
-        imgDiv.style.backgroundImage = `url('${getGameImageUrl(item.displayName)}')`;
 
-        // Try local thumbnail (overrides loremflickr if it exists)
-        const basename = item.filename.replace(/\/index\.html$/, '').replace(/\.html$/, '');
-        const localThumb = `assets/thumbnails/${basename}.jpg`;
-        const testImg = new Image();
-        testImg.onload = () => { imgDiv.style.backgroundImage = `url('${localThumb}')`; };
-        testImg.src = localThumb;
+        // Favorite star button (always visible top-right)
+        const starBtn = document.createElement('button');
+        starBtn.className = 'card-star' + (isGameFavorited(item.filename) ? ' active' : '');
+        starBtn.title = 'Favorite';
+        starBtn.textContent = '⭐';
+        starBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            toggleFavorite(item.filename);
+            starBtn.classList.toggle('active');
+        });
 
-        // Name overlay (shows on hover)
+        // Name overlay (slides up on hover)
         const nameDiv = document.createElement('div');
         nameDiv.className = 'card-name';
         nameDiv.textContent = item.displayName;
 
         card.appendChild(imgDiv);
+        card.appendChild(starBtn);
         card.appendChild(nameDiv);
 
         card.addEventListener('click', () => launchGameViewer(item));
         grid.appendChild(card);
+
+        // Observe for lazy image loading
+        observer.observe(card);
     });
 }
 
@@ -343,19 +405,36 @@ function setupAppsSearch() {
 
 // ===== FAVORITES =====
 function setupFavoritesToggle() {
-    const btn = document.getElementById('favoritesToggle');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        showView('games');
-        showingFavorites = !showingFavorites;
-        if (showingFavorites) {
-            btn.textContent = '🎮 All Games';
-            displayCards(allGames.filter(g => isGameFavorited(g.filename)), 'gamesGrid', 'noResults');
-        } else {
-            btn.textContent = '⭐ Favorites';
-            displayCards(allGames, 'gamesGrid', 'noResults');
-        }
-    });
+    // Home page button — navigates to games view and activates filter
+    const homeBtn = document.getElementById('favoritesToggle');
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => {
+            showView('games');
+            setFavoritesFilter(true);
+        });
+    }
+
+    // All Games view filter button
+    const filterBtn = document.getElementById('favFilterBtn');
+    if (filterBtn) {
+        filterBtn.addEventListener('click', () => {
+            setFavoritesFilter(!showingFavorites);
+        });
+    }
+}
+
+function setFavoritesFilter(on) {
+    showingFavorites = on;
+    const filterBtn = document.getElementById('favFilterBtn');
+    if (filterBtn) {
+        filterBtn.classList.toggle('active', on);
+        filterBtn.textContent = on ? '🎮 All Games' : '⭐ Favorites';
+    }
+    if (on) {
+        displayCards(allGames.filter(g => isGameFavorited(g.filename)), 'gamesGrid', 'noResults');
+    } else {
+        displayCards(allGames, 'gamesGrid', 'noResults');
+    }
 }
 
 // ===== RANDOM =====

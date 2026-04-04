@@ -359,6 +359,52 @@ body {
 .game-card:hover .card-img {
     transform: scale(1.08);
 }
+/* Favorite star — always visible top-right corner */
+.card-star {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 26px; height: 26px;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    opacity: 0.55;
+    transition: opacity 0.15s, background 0.15s, transform 0.15s;
+    line-height: 1;
+    padding: 0;
+}
+.card-star:hover { opacity: 1; transform: scale(1.15); }
+.card-star.active {
+    opacity: 1;
+    background: rgba(255,190,0,0.75);
+}
+
+/* Favorites filter button in All Games header */
+.fav-filter-btn {
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    border-radius: 20px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+.fav-filter-btn:hover { background: rgba(255,255,255,0.25); }
+.fav-filter-btn.active {
+    background: rgba(255,190,0,0.35);
+    border-color: rgba(255,190,0,0.7);
+}
+
 /* Name overlay — slides up on hover */
 .card-name {
     position: absolute;
