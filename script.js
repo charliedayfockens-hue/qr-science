@@ -278,21 +278,13 @@ function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
     if (noResults) noResults.style.display = 'none';
     grid.innerHTML = '';
 
-    const observer = getImageObserver();
-
     items.forEach((item, index) => {
         const card = document.createElement('button');
         card.className = 'game-card fade-in';
         card.style.animationDelay = `${index * 0.03}s`;
-        card.dataset.gameName = item.displayName;
-        card.dataset.basename = item.filename.replace(/\/index\.html$/, '').replace(/\.html$/, '');
+        card.style.backgroundColor = getHashColor(item.displayName);
 
-        // Image layer — color shown immediately, image loads lazily
-        const imgDiv = document.createElement('div');
-        imgDiv.className = 'card-img';
-        imgDiv.style.backgroundColor = getHashColor(item.displayName);
-
-        // Favorite star button (always visible top-right)
+        // Favorite star button (top-right corner)
         const starBtn = document.createElement('button');
         starBtn.className = 'card-star' + (isGameFavorited(item.filename) ? ' active' : '');
         starBtn.title = 'Favorite';
@@ -303,20 +295,15 @@ function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
             starBtn.classList.toggle('active');
         });
 
-        // Name overlay (slides up on hover)
+        // Game name — always visible, centered
         const nameDiv = document.createElement('div');
         nameDiv.className = 'card-name';
         nameDiv.textContent = item.displayName;
 
-        card.appendChild(imgDiv);
         card.appendChild(starBtn);
         card.appendChild(nameDiv);
-
         card.addEventListener('click', () => launchGameViewer(item));
         grid.appendChild(card);
-
-        // Observe for lazy image loading
-        observer.observe(card);
     });
 }
 

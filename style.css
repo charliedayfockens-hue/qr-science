@@ -330,7 +330,7 @@ body {
     gap: 14px;
 }
 
-/* ===== GAME CARD (square image button) ===== */
+/* ===== GAME CARD (square color button with text) ===== */
 .game-card {
     position: relative;
     width: 100%;
@@ -339,25 +339,16 @@ body {
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    padding: 0;
-    background: transparent;
+    padding: 10px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .game-card:hover {
     transform: translateY(-4px) scale(1.03);
     box-shadow: 0 10px 30px rgba(0,0,0,0.45);
-}
-.card-img {
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    transition: transform 0.3s ease;
-}
-.game-card:hover .card-img {
-    transform: scale(1.08);
 }
 /* Favorite star — always visible top-right corner */
 .card-star {
@@ -405,23 +396,18 @@ body {
     border-color: rgba(255,190,0,0.7);
 }
 
-/* Name overlay — slides up on hover */
+/* Game name — always visible, centered in card */
 .card-name {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 8px 10px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.85));
     color: white;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: 700;
     text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transform: translateY(100%);
-    transition: transform 0.22s ease;
+    word-break: break-word;
+    line-height: 1.3;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    pointer-events: none;
+    padding: 0 4px;
 }
-.game-card:hover .card-name { transform: translateY(0); }
 
 /* ===== LOADING / NO RESULTS ===== */
 .loading {
