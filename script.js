@@ -187,34 +187,48 @@ function getHashColor(name) {
     return `hsl(${h}, 55%, 38%)`;
 }
 
-// Fetch a relevant image from Wikipedia (CORS-friendly, no API key needed)
-// Results are cached in localStorage so each game is only looked up once.
+// Fetch a relevant image from Wikipedia's search API.
+// Uses the generator=search approach — one request that searches like a real
+// search engine and returns the page image for the top result.
+// Results cached in localStorage (key 'wikisrch_') so each game is only ever
+// looked up once across page refreshes.
 async function fetchGameImage(displayName) {
-    const key = 'wikiimg_' + displayName;
+    const key = 'wikisrch_' + displayName;
     const cached = localStorage.getItem(key);
     if (cached === 'none') return null;
     if (cached) return cached;
 
-    const searches = [
-        displayName + ' (video game)',
+    const terms = [
+        displayName + ' video game',
         displayName + ' game',
         displayName
     ];
-    for (const term of searches) {
+
+    for (const term of terms) {
         try {
-            const r = await fetch(
-                `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`,
-                { headers: { 'Accept': 'application/json' } }
-            );
-            if (r.ok) {
-                const d = await r.json();
-                if (d.thumbnail && d.thumbnail.source) {
-                    localStorage.setItem(key, d.thumbnail.source);
-                    return d.thumbnail.source;
-                }
+            const params = new URLSearchParams({
+                action: 'query',
+                generator: 'search',
+                gsrsearch: term,
+                gsrlimit: '1',
+                prop: 'pageimages',
+                pithumbsize: '400',
+                format: 'json',
+                origin: '*'
+            });
+            const resp = await fetch(`https://en.wikipedia.org/w/api.php?${params}`);
+            if (!resp.ok) continue;
+            const data = await resp.json();
+            const pages = data.query?.pages;
+            if (!pages) continue;
+            const page = Object.values(pages)[0];
+            if (page?.thumbnail?.source) {
+                localStorage.setItem(key, page.thumbnail.source);
+                return page.thumbnail.source;
             }
         } catch {}
     }
+
     localStorage.setItem(key, 'none');
     return null;
 }
@@ -233,18 +247,18 @@ function getImageObserver() {
             if (!name || !imgDiv) continue;
             // Check local thumbnail first
             const basename = card.dataset.basename;
+            const tryWiki = async () => {
+                const url = await fetchGameImage(name);
+                if (url) imgDiv.style.backgroundImage = `url('${url}')`;
+            };
             if (basename) {
                 const localUrl = `assets/thumbnails/${basename}.jpg`;
                 const test = new Image();
                 test.onload = () => { imgDiv.style.backgroundImage = `url('${localUrl}')`; };
-                test.onerror = async () => {
-                    const url = await fetchGameImage(name);
-                    if (url) imgDiv.style.backgroundImage = `url('${url}')`;
-                };
+                test.onerror = tryWiki;
                 test.src = localUrl;
             } else {
-                const url = await fetchGameImage(name);
-                if (url) imgDiv.style.backgroundImage = `url('${url}')`;
+                await tryWiki();
             }
         }
     }, { rootMargin: '200px 0px' });
