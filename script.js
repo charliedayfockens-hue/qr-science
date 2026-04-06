@@ -138,13 +138,44 @@ async function fetchFromGitHubAPI(username, repo, path) {
         if (!response.ok) return [];
         const files = await response.json();
         const basePath = path + '/';
-        const games = [];
-        files.filter(f => f.type === 'file' && f.name.endsWith('.html'))
-            .forEach(f => games.push({ filename: f.name, displayName: formatGameName(f.name), basePath }));
-        files.filter(f => f.type === 'dir')
-            .forEach(f => games.push({ filename: f.name + '/index.html', displayName: formatGameName(f.name), basePath }));
-        return games;
+
+        // Single HTML files — straightforward
+        const singles = files
+            .filter(f => f.type === 'file' && f.name.endsWith('.html'))
+            .map(f => ({ filename: f.name, displayName: formatGameName(f.name), basePath }));
+
+        // Folders — look inside each one in parallel to find the real entry file
+        const folderResults = await Promise.all(
+            files.filter(f => f.type === 'dir').map(async f => {
+                const entry = await resolveGitHubFolderEntry(username, repo, path + '/' + f.name, f.name);
+                if (!entry) return null;
+                return { filename: f.name + '/' + entry, displayName: formatGameName(f.name), basePath };
+            })
+        );
+
+        return [...singles, ...folderResults.filter(Boolean)];
     } catch { return []; }
+}
+
+// Given a folder in the GitHub repo, find the best HTML entry point.
+// Priority: index.html > main.html > game.html > app.html >
+//           a file matching the folder name > first .html file found.
+// Returns null if the folder has no HTML files at all.
+async function resolveGitHubFolderEntry(username, repo, folderPath, folderName) {
+    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    try {
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
+        const resp = await fetch(url);
+        if (!resp.ok) return 'index.html';
+        const files = await resp.json();
+        const htmlFiles = files
+            .filter(f => f.type === 'file' && f.name.endsWith('.html'))
+            .map(f => f.name);
+        if (!htmlFiles.length) return null;
+        for (const p of PRIORITY) if (htmlFiles.includes(p)) return p;
+        const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
+        return match || htmlFiles[0];
+    } catch { return 'index.html'; }
 }
 
 async function fetchFromDirectoryListing(path) {
@@ -153,20 +184,52 @@ async function fetchFromDirectoryListing(path) {
         if (!response.ok) return [];
         const text = await response.text();
         const doc = new DOMParser().parseFromString(text, 'text/html');
-        const games = [];
+        const singles = [];
+        const folderNames = [];
+
         doc.querySelectorAll('a').forEach(link => {
             const href = link.getAttribute('href');
             if (!href) return;
             if (href.endsWith('.html')) {
                 const filename = href.split('/').pop().split('?')[0];
-                games.push({ filename, displayName: formatGameName(filename), basePath: path });
+                singles.push({ filename, displayName: formatGameName(filename), basePath: path });
             } else if (href.endsWith('/') && href !== '../' && href !== './' && !href.startsWith('?')) {
                 const folderName = href.replace(/\/$/, '').split('/').pop();
-                if (folderName) games.push({ filename: folderName + '/index.html', displayName: formatGameName(folderName), basePath: path });
+                if (folderName) folderNames.push(folderName);
             }
         });
-        return games;
+
+        // Resolve each folder's entry file in parallel
+        const folderResults = await Promise.all(
+            folderNames.map(async folderName => {
+                const entry = await resolveDirectoryFolderEntry(path + folderName + '/', folderName);
+                if (!entry) return null;
+                return { filename: folderName + '/' + entry, displayName: formatGameName(folderName), basePath: path };
+            })
+        );
+
+        return [...singles, ...folderResults.filter(Boolean)];
     } catch { return []; }
+}
+
+// Given a folder URL from a directory listing, fetch its contents and pick the
+// best HTML entry point using the same priority logic as the GitHub API version.
+async function resolveDirectoryFolderEntry(folderUrl, folderName) {
+    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    try {
+        const resp = await fetch(folderUrl);
+        if (!resp.ok) return 'index.html';
+        const text = await resp.text();
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        const htmlFiles = [...doc.querySelectorAll('a')]
+            .map(a => a.getAttribute('href'))
+            .filter(h => h && h.endsWith('.html'))
+            .map(h => h.split('/').pop().split('?')[0]);
+        if (!htmlFiles.length) return null;
+        for (const p of PRIORITY) if (htmlFiles.includes(p)) return p;
+        const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
+        return match || htmlFiles[0];
+    } catch { return 'index.html'; }
 }
 
 // ===== FORMAT NAME =====
