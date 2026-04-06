@@ -375,11 +375,22 @@ function launchGameViewer(game) {
     if (!game || !game.filename) return;
     currentGame = { filename: game.filename, displayName: game.displayName };
 
-    // basePath was stored when loading (e.g. "assets/games/" or "assets/apps/")
-    // Fall back to assets/ for backwards compatibility
     const base = game.basePath || 'assets/';
     const src = base + game.filename;
+    const isApp = base.includes('apps');
 
+    // Apps open in a new tab — no toolbar, no iframe overlay
+    if (isApp) {
+        incrementPlayCount(game.filename);
+        addRecentGame(game);
+        updateStats();
+        updateLeaderboard();
+        updateRecentGamesList();
+        window.open(src, '_blank');
+        return;
+    }
+
+    // Games open in the in-page iframe viewer
     document.getElementById('gameFrame').src = src;
     document.getElementById('viewerGameTitle').textContent = game.displayName;
     document.getElementById('gameViewer').classList.add('active');
