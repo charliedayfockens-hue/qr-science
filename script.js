@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
     setupRandomButton();
     setupFavoritesToggle();
     setupSearch();
-    setupAddAppForm();
     loadSavedTheme();
     loadSavedCloak();
     setupClock();
@@ -92,19 +91,15 @@ async function loadGamesAutomatically() {
     grid.innerHTML = '<div class="loading">No games found. Add HTML files or folders to <code>assets/games/</code>.</div>';
 }
 
-function loadApps() {
-    allApps = JSON.parse(localStorage.getItem('savedApps') || '[]');
-    renderAppCards();
-}
-
-function saveApps() {
-    localStorage.setItem('savedApps', JSON.stringify(allApps));
-}
-
-function renderAppCards() {
+// Apps are defined in assets/apps.json — edit that file to add/remove apps.
+async function loadApps() {
     const grid = document.getElementById('appsGrid');
     const noResults = document.getElementById('noAppsResults');
     const counter = document.getElementById('appsCounter');
+    try {
+        const resp = await fetch('assets/apps.json');
+        allApps = resp.ok ? await resp.json() : [];
+    } catch { allApps = []; }
     grid.innerHTML = '';
     if (!allApps.length) {
         noResults.style.display = 'block';
@@ -117,49 +112,13 @@ function renderAppCards() {
         const card = document.createElement('button');
         card.className = 'game-card fade-in';
         card.style.animationDelay = `${index * 0.03}s`;
-        card.style.backgroundColor = getHashColor(app.displayName);
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'card-star';
-        delBtn.title = 'Remove app';
-        delBtn.textContent = '✕';
-        delBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            allApps.splice(index, 1);
-            saveApps();
-            renderAppCards();
-        });
-
+        card.style.backgroundColor = getHashColor(app.name);
         const nameDiv = document.createElement('div');
         nameDiv.className = 'card-name';
-        nameDiv.textContent = app.displayName;
-
-        card.appendChild(delBtn);
+        nameDiv.textContent = app.name;
         card.appendChild(nameDiv);
         card.addEventListener('click', () => window.open(app.url, '_blank'));
         grid.appendChild(card);
-    });
-}
-
-function setupAddAppForm() {
-    const btn = document.getElementById('addAppBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        const nameInput = document.getElementById('appNameInput');
-        const urlInput  = document.getElementById('appUrlInput');
-        const name = nameInput.value.trim();
-        let url = urlInput.value.trim();
-        if (!name || !url) return;
-        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-        allApps.push({ displayName: name, url });
-        saveApps();
-        renderAppCards();
-        nameInput.value = '';
-        urlInput.value = '';
-    });
-    // Also submit on Enter in either input
-    [document.getElementById('appNameInput'), document.getElementById('appUrlInput')].forEach(inp => {
-        if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
     });
 }
 
