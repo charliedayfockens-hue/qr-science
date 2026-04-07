@@ -400,6 +400,28 @@ function getImageObserver() {
     return _imgObserver;
 }
 
+// ===== THUMBNAILS =====
+// Tries assets/thumbnails/<displayName>.(png|jpg|jpeg|webp) in order.
+// If found, sets the card's background image; otherwise the hash color stays.
+function loadThumbnail(displayName, card) {
+    const exts = ['png', 'jpg', 'jpeg', 'webp'];
+    let i = 0;
+    function tryNext() {
+        if (i >= exts.length) return;
+        const img = new Image();
+        const src = `assets/thumbnails/${displayName}.${exts[i]}`;
+        img.onload = () => {
+            card.style.backgroundImage = `url("${src}")`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            card.classList.add('has-thumbnail');
+        };
+        img.onerror = () => { i++; tryNext(); };
+        img.src = src;
+    }
+    tryNext();
+}
+
 // ===== DISPLAY CARDS =====
 function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
     const grid = document.getElementById(gridId);
@@ -439,6 +461,7 @@ function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
         card.appendChild(nameDiv);
         card.addEventListener('click', () => launchGameViewer(item));
         grid.appendChild(card);
+        loadThumbnail(item.displayName, card);
     });
 }
 
