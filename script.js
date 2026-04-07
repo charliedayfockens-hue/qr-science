@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupRandomButton();
     setupFavoritesToggle();
     setupSearch();
-    setupAppsSearch();
+    setupAddAppForm();
     loadSavedTheme();
     loadSavedCloak();
     setupClock();
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateRecentGamesList();
     updateNewlyAddedList();
     loadGamesAutomatically();
-    loadAppsAutomatically();
+    loadApps();
 });
 
 // ===== NAVIGATION =====
@@ -92,32 +92,75 @@ async function loadGamesAutomatically() {
     grid.innerHTML = '<div class="loading">No games found. Add HTML files or folders to <code>assets/games/</code>.</div>';
 }
 
-async function loadAppsAutomatically() {
+function loadApps() {
+    allApps = JSON.parse(localStorage.getItem('savedApps') || '[]');
+    renderAppCards();
+}
+
+function saveApps() {
+    localStorage.setItem('savedApps', JSON.stringify(allApps));
+}
+
+function renderAppCards() {
     const grid = document.getElementById('appsGrid');
-    grid.innerHTML = '<div class="loading">Loading apps...</div>';
-
-    const { username, repo } = getGitHubInfo();
-
-    if (username && repo) {
-        const result = await fetchFromGitHubAPI(username, repo, 'assets/apps');
-        if (result.length > 0) {
-            allApps = result;
-            displayCards(allApps, 'appsGrid', 'noAppsResults');
-            document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
-            return;
-        }
-    }
-
-    const result = await fetchFromDirectoryListing('assets/apps/');
-    if (result.length > 0) {
-        allApps = result;
-        displayCards(allApps, 'appsGrid', 'noAppsResults');
-        document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
+    const noResults = document.getElementById('noAppsResults');
+    const counter = document.getElementById('appsCounter');
+    grid.innerHTML = '';
+    if (!allApps.length) {
+        noResults.style.display = 'block';
+        counter.textContent = '';
         return;
     }
+    noResults.style.display = 'none';
+    counter.textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
+    allApps.forEach((app, index) => {
+        const card = document.createElement('button');
+        card.className = 'game-card fade-in';
+        card.style.animationDelay = `${index * 0.03}s`;
+        card.style.backgroundColor = getHashColor(app.displayName);
 
-    grid.innerHTML = '';
-    document.getElementById('noAppsResults').style.display = 'block';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'card-star';
+        delBtn.title = 'Remove app';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            allApps.splice(index, 1);
+            saveApps();
+            renderAppCards();
+        });
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'card-name';
+        nameDiv.textContent = app.displayName;
+
+        card.appendChild(delBtn);
+        card.appendChild(nameDiv);
+        card.addEventListener('click', () => window.open(app.url, '_blank'));
+        grid.appendChild(card);
+    });
+}
+
+function setupAddAppForm() {
+    const btn = document.getElementById('addAppBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        const nameInput = document.getElementById('appNameInput');
+        const urlInput  = document.getElementById('appUrlInput');
+        const name = nameInput.value.trim();
+        let url = urlInput.value.trim();
+        if (!name || !url) return;
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        allApps.push({ displayName: name, url });
+        saveApps();
+        renderAppCards();
+        nameInput.value = '';
+        urlInput.value = '';
+    });
+    // Also submit on Enter in either input
+    [document.getElementById('appNameInput'), document.getElementById('appUrlInput')].forEach(inp => {
+        if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+    });
 }
 
 function getGitHubInfo() {
@@ -452,7 +495,6 @@ function launchGameViewer(game) {
     currentGame = { filename: game.filename, displayName: game.displayName };
 
     const base = game.basePath || 'assets/';
-    const isApp = base.includes('apps');
 
     // Build the source URL — JS-only games get a blob wrapper with correct base href
     let src;
@@ -466,17 +508,6 @@ function launchGameViewer(game) {
         src = URL.createObjectURL(new Blob([wrapper], { type: 'text/html' }));
     } else {
         src = base + game.filename;
-    }
-
-    // Apps open in a new tab — no toolbar, no iframe overlay
-    if (isApp) {
-        incrementPlayCount(game.filename);
-        addRecentGame(game);
-        updateStats();
-        updateLeaderboard();
-        updateRecentGamesList();
-        window.open(src, '_blank');
-        return;
     }
 
     // Games open in the in-page iframe viewer
@@ -549,23 +580,6 @@ function setupSearch() {
     });
 }
 
-function setupAppsSearch() {
-    const bar = document.getElementById('appsSearchBar');
-    if (!bar) return;
-    bar.addEventListener('input', e => {
-        const term = e.target.value.toLowerCase().trim();
-        if (!term) {
-            displayCards(allApps, 'appsGrid', 'noAppsResults');
-        } else {
-            displayCards(allApps.filter(a =>
-                a.displayName.toLowerCase().includes(term) || a.filename.toLowerCase().includes(term)
-            ), 'appsGrid', 'noAppsResults');
-        }
-    });
-    bar.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { bar.value = ''; displayCards(allApps, 'appsGrid', 'noAppsResults'); bar.blur(); }
-    });
-}
 
 // ===== FAVORITES =====
 function setupFavoritesToggle() {

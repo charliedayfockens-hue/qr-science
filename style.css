@@ -396,6 +396,42 @@ body {
     border-color: rgba(255,190,0,0.7);
 }
 
+/* Add App form */
+.add-app-form {
+    display: flex;
+    gap: 10px;
+    padding: 12px 20px 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.app-input {
+    flex: 1;
+    min-width: 140px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.1);
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+.app-input::placeholder { opacity: 0.55; }
+.app-input:focus { outline: none; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.18); }
+.add-app-btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.22);
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.add-app-btn:hover { background: rgba(255,255,255,0.35); }
+
 /* Game name — always visible, centered in card */
 .card-name {
     color: white;
