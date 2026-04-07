@@ -91,18 +91,16 @@ async function loadGamesAutomatically() {
     grid.innerHTML = '<div class="loading">No games found. Add HTML files or folders to <code>assets/games/</code>.</div>';
 }
 
-// Apps are defined in assets/apps.json — edit that file to add/remove apps.
-async function loadApps() {
+// Apps are defined in assets/apps.js — edit that file to add/remove apps.
+function loadApps() {
     const grid = document.getElementById('appsGrid');
     const noResults = document.getElementById('noAppsResults');
     const counter = document.getElementById('appsCounter');
-    try {
-        const resp = await fetch('assets/apps.json');
-        allApps = resp.ok ? await resp.json() : [];
-    } catch { allApps = []; }
+    allApps = window.APPS || [];
     grid.innerHTML = '';
     if (!allApps.length) {
         noResults.style.display = 'block';
+        noResults.textContent = 'No apps yet. Add entries to assets/apps.js';
         counter.textContent = '';
         return;
     }
