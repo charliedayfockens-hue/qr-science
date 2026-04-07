@@ -149,7 +149,12 @@ async function fetchFromGitHubAPI(username, repo, path) {
             files.filter(f => f.type === 'dir').map(async f => {
                 const entry = await resolveGitHubFolderEntry(username, repo, path + '/' + f.name, f.name);
                 if (!entry) return null;
-                return { filename: f.name + '/' + entry, displayName: formatGameName(f.name), basePath };
+                const displayName = formatGameName(f.name);
+                if (entry.startsWith('__js__:')) {
+                    const jsFile = entry.slice(7);
+                    return { filename: f.name + '/' + jsFile, displayName, basePath, jsEntry: jsFile, folderRelPath: basePath + f.name + '/' };
+                }
+                return { filename: f.name + '/' + entry, displayName, basePath };
             })
         );
 
@@ -157,24 +162,53 @@ async function fetchFromGitHubAPI(username, repo, path) {
     } catch { return []; }
 }
 
-// Given a folder in the GitHub repo, find the best HTML entry point.
-// Priority: index.html > main.html > game.html > app.html >
-//           a file matching the folder name > first .html file found.
-// Returns null if the folder has no HTML files at all.
+// Given a folder in the GitHub repo, find the best runnable entry point.
+// 1) HTML files in the folder root (index.html > main.html > game.html > app.html > name-match > first)
+// 2) HTML files in common build subdirs (Site, dist, build, public, www, out, _site)
+// 3) JS entry file — returns "__js__:filename" so the caller can generate a wrapper
+// Returns null if nothing runnable is found.
 async function resolveGitHubFolderEntry(username, repo, folderPath, folderName) {
-    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    const HTML_PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    const SUBDIR_PRIORITY = ['Site', 'site', 'dist', 'build', 'public', 'www', 'out', '_site'];
+    const JS_PRIORITY = ['index.mjs', 'index.js', 'main.mjs', 'main.js', 'app.mjs', 'app.js'];
     try {
         const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
         const resp = await fetch(url);
         if (!resp.ok) return 'index.html';
         const files = await resp.json();
-        const htmlFiles = files
-            .filter(f => f.type === 'file' && f.name.endsWith('.html'))
-            .map(f => f.name);
-        if (!htmlFiles.length) return null;
-        for (const p of PRIORITY) if (htmlFiles.includes(p)) return p;
-        const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
-        return match || htmlFiles[0];
+
+        // 1) HTML in root
+        const htmlFiles = files.filter(f => f.type === 'file' && f.name.endsWith('.html')).map(f => f.name);
+        if (htmlFiles.length) {
+            for (const p of HTML_PRIORITY) if (htmlFiles.includes(p)) return p;
+            const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
+            return match || htmlFiles[0];
+        }
+
+        // 2) HTML in subdirectories
+        const subdirs = files.filter(f => f.type === 'dir').map(f => f.name);
+        const checkOrder = [...SUBDIR_PRIORITY.filter(s => subdirs.includes(s)), ...subdirs.filter(s => !SUBDIR_PRIORITY.includes(s))];
+        for (const subdir of checkOrder) {
+            try {
+                const subResp = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${folderPath}/${subdir}`);
+                if (!subResp.ok) continue;
+                const subFiles = await subResp.json();
+                const subHtml = subFiles.filter(f => f.type === 'file' && f.name.endsWith('.html')).map(f => f.name);
+                if (subHtml.length) {
+                    for (const p of HTML_PRIORITY) if (subHtml.includes(p)) return `${subdir}/${p}`;
+                    return `${subdir}/${subHtml[0]}`;
+                }
+            } catch { /* skip inaccessible subdir */ }
+        }
+
+        // 3) JS fallback — caller will generate a blob wrapper
+        const jsFiles = files.filter(f => f.type === 'file' && (f.name.endsWith('.js') || f.name.endsWith('.mjs'))).map(f => f.name);
+        if (jsFiles.length) {
+            for (const p of JS_PRIORITY) if (jsFiles.includes(p)) return `__js__:${p}`;
+            return `__js__:${jsFiles[0]}`;
+        }
+
+        return null;
     } catch { return 'index.html'; }
 }
 
@@ -204,7 +238,12 @@ async function fetchFromDirectoryListing(path) {
             folderNames.map(async folderName => {
                 const entry = await resolveDirectoryFolderEntry(path + folderName + '/', folderName);
                 if (!entry) return null;
-                return { filename: folderName + '/' + entry, displayName: formatGameName(folderName), basePath: path };
+                const displayName = formatGameName(folderName);
+                if (entry.startsWith('__js__:')) {
+                    const jsFile = entry.slice(7);
+                    return { filename: folderName + '/' + jsFile, displayName, basePath: path, jsEntry: jsFile, folderRelPath: path + folderName + '/' };
+                }
+                return { filename: folderName + '/' + entry, displayName, basePath: path };
             })
         );
 
@@ -212,23 +251,56 @@ async function fetchFromDirectoryListing(path) {
     } catch { return []; }
 }
 
-// Given a folder URL from a directory listing, fetch its contents and pick the
-// best HTML entry point using the same priority logic as the GitHub API version.
+// Given a folder URL from a directory listing, find the best runnable entry point.
+// Same 3-tier logic as resolveGitHubFolderEntry (HTML root → subdir HTML → JS fallback).
 async function resolveDirectoryFolderEntry(folderUrl, folderName) {
-    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    const HTML_PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
+    const SUBDIR_PRIORITY = ['Site', 'site', 'dist', 'build', 'public', 'www', 'out', '_site'];
+    const JS_PRIORITY = ['index.mjs', 'index.js', 'main.mjs', 'main.js', 'app.mjs', 'app.js'];
     try {
         const resp = await fetch(folderUrl);
         if (!resp.ok) return 'index.html';
         const text = await resp.text();
         const doc = new DOMParser().parseFromString(text, 'text/html');
-        const htmlFiles = [...doc.querySelectorAll('a')]
-            .map(a => a.getAttribute('href'))
-            .filter(h => h && h.endsWith('.html'))
-            .map(h => h.split('/').pop().split('?')[0]);
-        if (!htmlFiles.length) return null;
-        for (const p of PRIORITY) if (htmlFiles.includes(p)) return p;
-        const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
-        return match || htmlFiles[0];
+        const links = [...doc.querySelectorAll('a')].map(a => a.getAttribute('href')).filter(Boolean);
+
+        // 1) HTML in root
+        const htmlFiles = links.filter(h => h.endsWith('.html')).map(h => h.split('/').pop().split('?')[0]);
+        if (htmlFiles.length) {
+            for (const p of HTML_PRIORITY) if (htmlFiles.includes(p)) return p;
+            const match = htmlFiles.find(f => f.replace('.html', '').toLowerCase() === folderName.toLowerCase());
+            return match || htmlFiles[0];
+        }
+
+        // 2) HTML in subdirectories
+        const subdirNames = links
+            .filter(h => h.endsWith('/') && h !== '../' && h !== './' && !h.startsWith('?'))
+            .map(h => h.replace(/\/$/, '').split('/').pop()).filter(Boolean);
+        const checkOrder = [...SUBDIR_PRIORITY.filter(s => subdirNames.includes(s)), ...subdirNames.filter(s => !SUBDIR_PRIORITY.includes(s))];
+        for (const subdir of checkOrder) {
+            try {
+                const subResp = await fetch(folderUrl + subdir + '/');
+                if (!subResp.ok) continue;
+                const subText = await subResp.text();
+                const subDoc = new DOMParser().parseFromString(subText, 'text/html');
+                const subHtml = [...subDoc.querySelectorAll('a')]
+                    .map(a => a.getAttribute('href')).filter(h => h && h.endsWith('.html'))
+                    .map(h => h.split('/').pop().split('?')[0]);
+                if (subHtml.length) {
+                    for (const p of HTML_PRIORITY) if (subHtml.includes(p)) return `${subdir}/${p}`;
+                    return `${subdir}/${subHtml[0]}`;
+                }
+            } catch { /* skip */ }
+        }
+
+        // 3) JS fallback
+        const jsFiles = links.filter(h => h.endsWith('.js') || h.endsWith('.mjs')).map(h => h.split('/').pop().split('?')[0]);
+        if (jsFiles.length) {
+            for (const p of JS_PRIORITY) if (jsFiles.includes(p)) return `__js__:${p}`;
+            return `__js__:${jsFiles[0]}`;
+        }
+
+        return null;
     } catch { return 'index.html'; }
 }
 
@@ -373,11 +445,28 @@ function displayCards(items, gridId = 'gamesGrid', noResultsId = 'noResults') {
 // ===== GAME VIEWER =====
 function launchGameViewer(game) {
     if (!game || !game.filename) return;
+    // Look up the full game object (recent/newly-added lists only store filename+displayName)
+    const full = [...(allGames || []), ...(allApps || [])].find(g => g.filename === game.filename);
+    if (full) game = full;
+
     currentGame = { filename: game.filename, displayName: game.displayName };
 
     const base = game.basePath || 'assets/';
-    const src = base + game.filename;
     const isApp = base.includes('apps');
+
+    // Build the source URL — JS-only games get a blob wrapper with correct base href
+    let src;
+    if (game.jsEntry && game.folderRelPath) {
+        const pageBase = window.location.href.replace(/\/[^/]*$/, '/');
+        const absFolder = pageBase + game.folderRelPath;
+        const wrapper = `<!DOCTYPE html><html><head><meta charset="utf-8">` +
+            `<base href="${absFolder}">` +
+            `<style>*{margin:0;padding:0}body{background:#000;width:100vw;height:100vh;overflow:hidden}canvas{display:block;max-width:100%;max-height:100%}</style>` +
+            `</head><body><script type="module" src="${game.jsEntry}"><\/script></body></html>`;
+        src = URL.createObjectURL(new Blob([wrapper], { type: 'text/html' }));
+    } else {
+        src = base + game.filename;
+    }
 
     // Apps open in a new tab — no toolbar, no iframe overlay
     if (isApp) {
