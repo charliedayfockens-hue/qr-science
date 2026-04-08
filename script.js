@@ -29,7 +29,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ===== NAVIGATION =====
 function setupNavigation() {
+    const proxyBtn = document.getElementById('proxyNavBtn');
+    if (proxyBtn) {
+        proxyBtn.addEventListener('click', () => {
+            const url = window.PROXY_URL && window.PROXY_URL.trim();
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                alert('Proxy not configured yet.\n\n1. Deploy proxy-server/ to Render.com\n2. Paste your URL into assets/proxy-config.js');
+            }
+        });
+    }
+
     document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (!btn.dataset.view) return; // skip proxy button
         btn.addEventListener('click', () => {
             showView(btn.dataset.view);
         });
