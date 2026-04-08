@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateRecentGamesList();
     updateNewlyAddedList();
     loadGamesAutomatically();
-    loadApps();
+    loadAppsAutomatically();
 });
 
 // ===== NAVIGATION =====
@@ -91,33 +91,33 @@ async function loadGamesAutomatically() {
     grid.innerHTML = '<div class="loading">No games found. Add HTML files or folders to <code>assets/games/</code>.</div>';
 }
 
-// Apps are defined in assets/apps.js — edit that file to add/remove apps.
-function loadApps() {
+// Apps live in assets/apps/ — same file/folder rules as games, open in new tab.
+async function loadAppsAutomatically() {
     const grid = document.getElementById('appsGrid');
-    const noResults = document.getElementById('noAppsResults');
-    const counter = document.getElementById('appsCounter');
-    allApps = window.APPS || [];
-    grid.innerHTML = '';
-    if (!allApps.length) {
-        noResults.style.display = 'block';
-        noResults.textContent = 'No apps yet. Add entries to assets/apps.js';
-        counter.textContent = '';
+    grid.innerHTML = '<div class="loading">Loading apps...</div>';
+
+    const { username, repo } = getGitHubInfo();
+
+    if (username && repo) {
+        const result = await fetchFromGitHubAPI(username, repo, 'assets/apps');
+        if (result.length > 0) {
+            allApps = result;
+            displayCards(allApps, 'appsGrid', 'noAppsResults');
+            document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
+            return;
+        }
+    }
+
+    const result = await fetchFromDirectoryListing('assets/apps/');
+    if (result.length > 0) {
+        allApps = result;
+        displayCards(allApps, 'appsGrid', 'noAppsResults');
+        document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
         return;
     }
-    noResults.style.display = 'none';
-    counter.textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
-    allApps.forEach((app, index) => {
-        const card = document.createElement('button');
-        card.className = 'game-card fade-in';
-        card.style.animationDelay = `${index * 0.03}s`;
-        card.style.backgroundColor = getHashColor(app.name);
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'card-name';
-        nameDiv.textContent = app.name;
-        card.appendChild(nameDiv);
-        card.addEventListener('click', () => window.open(app.url, '_blank'));
-        grid.appendChild(card);
-    });
+
+    grid.innerHTML = '';
+    document.getElementById('noAppsResults').style.display = 'block';
 }
 
 function getGitHubInfo() {
@@ -488,6 +488,17 @@ function launchGameViewer(game) {
         src = URL.createObjectURL(new Blob([wrapper], { type: 'text/html' }));
     } else {
         src = base + game.filename;
+    }
+
+    // Apps open in a new tab — no toolbar since it's a bare file
+    if (game.basePath && game.basePath.includes('apps')) {
+        incrementPlayCount(game.filename);
+        addRecentGame(game);
+        updateStats();
+        updateLeaderboard();
+        updateRecentGamesList();
+        window.open(src, '_blank');
+        return;
     }
 
     // Games open in the in-page iframe viewer
