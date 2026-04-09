@@ -46,15 +46,6 @@ function setupNavigation() {
         if (e.target === settingsModal) settingsModal.style.display = 'none';
     });
 }
-    const view = document.getElementById('view-' + name);
-    if (view) view.classList.add('active');
-    const btn = document.querySelector(`.nav-btn[data-view="${name}"]`);
-    if (btn) btn.classList.add('active');
-    // Reset favorites filter when leaving games view
-    if (name !== 'games' && showingFavorites) {
-        setFavoritesFilter(false);
-    }
-}
 
 // ===== GAME / APP LIST CACHE =====
 // Caches the full game/app list for 24 hours to avoid GitHub API rate limits.
