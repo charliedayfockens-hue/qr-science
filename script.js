@@ -537,10 +537,14 @@ function launchGameViewer(game) {
         return;
     }
 
-    // Games open in the in-page iframe viewer
-    document.getElementById('gameFrame').src = src;
+    // Games open in the in-page iframe viewer.
+    // Kill any currently running game first so its requests stop before the new one starts.
+    const frame = document.getElementById('gameFrame');
+    frame.src = '';
     document.getElementById('viewerGameTitle').textContent = game.displayName;
     document.getElementById('gameViewer').classList.add('active');
+    // Small pause lets the browser fully unload the old game before the new one fetches its assets.
+    setTimeout(() => { frame.src = src; }, 150);
 
     incrementPlayCount(game.filename);
     addRecentGame(game);
