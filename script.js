@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupThemeChanger();
     setupTabCloaking();
     setupEjectButton();
+    setupRefreshCacheBtn();
     setupRandomButton();
     setupFavoritesToggle();
     setupSearch();
@@ -62,39 +63,57 @@ function showView(name) {
     }
 }
 
+// ===== GAME / APP LIST CACHE =====
+// Caches the full game/app list for 24 hours to avoid GitHub API rate limits.
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function getCache(key) {
+    try {
+        const c = JSON.parse(localStorage.getItem(key));
+        if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
+    } catch {}
+    return null;
+}
+
+function setCache(key, data) {
+    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+function clearGameCache() {
+    localStorage.removeItem('cache_games');
+    localStorage.removeItem('cache_apps');
+}
+
 // ===== GAME LOADING =====
 async function loadGamesAutomatically() {
     const grid = document.getElementById('gamesGrid');
+
+    // Use cache if fresh — avoids hammering the GitHub API
+    const cached = getCache('cache_games');
+    if (cached && cached.length > 0) {
+        allGames = cached;
+        displayCards(allGames, 'gamesGrid', 'noResults');
+        updateGameCounter();
+        detectNewGames(allGames);
+        return;
+    }
+
     grid.innerHTML = '<div class="loading">Loading games...</div>';
 
     const { username, repo } = getGitHubInfo();
+    let result = [];
 
-    // Method 1: GitHub API — assets/games/
     if (username && repo) {
-        const result = await fetchFromGitHubAPI(username, repo, 'assets/games');
-        if (result.length > 0) {
-            allGames = result;
-            displayCards(allGames, 'gamesGrid', 'noResults');
-            updateGameCounter();
-            detectNewGames(allGames);
-            return;
-        }
-        // Fallback: try root assets/ (backward compat)
-        const fallback = await fetchFromGitHubAPI(username, repo, 'assets');
-        if (fallback.length > 0) {
-            allGames = fallback;
-            displayCards(allGames, 'gamesGrid', 'noResults');
-            updateGameCounter();
-            detectNewGames(allGames);
-            return;
-        }
+        result = await fetchFromGitHubAPI(username, repo, 'assets/games');
+        if (!result.length) result = await fetchFromGitHubAPI(username, repo, 'assets');
     }
 
-    // Method 2: Directory listing
-    let result = await fetchFromDirectoryListing('assets/games/');
-    if (result.length === 0) result = await fetchFromDirectoryListing('assets/');
+    if (!result.length) result = await fetchFromDirectoryListing('assets/games/');
+    if (!result.length) result = await fetchFromDirectoryListing('assets/');
+
     if (result.length > 0) {
         allGames = result;
+        setCache('cache_games', allGames);
         displayCards(allGames, 'gamesGrid', 'noResults');
         updateGameCounter();
         detectNewGames(allGames);
@@ -107,23 +126,26 @@ async function loadGamesAutomatically() {
 // Apps live in assets/apps/ — same file/folder rules as games, open in new tab.
 async function loadAppsAutomatically() {
     const grid = document.getElementById('appsGrid');
+
+    const cached = getCache('cache_apps');
+    if (cached && cached.length > 0) {
+        allApps = cached;
+        displayCards(allApps, 'appsGrid', 'noAppsResults');
+        document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
+        return;
+    }
+
     grid.innerHTML = '<div class="loading">Loading apps...</div>';
 
     const { username, repo } = getGitHubInfo();
+    let result = [];
 
-    if (username && repo) {
-        const result = await fetchFromGitHubAPI(username, repo, 'assets/apps');
-        if (result.length > 0) {
-            allApps = result;
-            displayCards(allApps, 'appsGrid', 'noAppsResults');
-            document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
-            return;
-        }
-    }
+    if (username && repo) result = await fetchFromGitHubAPI(username, repo, 'assets/apps');
+    if (!result.length) result = await fetchFromDirectoryListing('assets/apps/');
 
-    const result = await fetchFromDirectoryListing('assets/apps/');
     if (result.length > 0) {
         allApps = result;
+        setCache('cache_apps', allApps);
         displayCards(allApps, 'appsGrid', 'noAppsResults');
         document.getElementById('appsCounter').textContent = `${allApps.length} App${allApps.length !== 1 ? 's' : ''}`;
         return;
@@ -132,6 +154,7 @@ async function loadAppsAutomatically() {
     grid.innerHTML = '';
     document.getElementById('noAppsResults').style.display = 'block';
 }
+
 
 function getGitHubInfo() {
     const hostname = window.location.hostname;
@@ -629,6 +652,21 @@ function setupRandomButton() {
         const game = pool[Math.floor(Math.random() * pool.length)];
         currentGame = { filename: game.filename, displayName: game.displayName };
         launchGameViewer(currentGame);
+    });
+}
+
+// ===== REFRESH CACHE =====
+function setupRefreshCacheBtn() {
+    const btn = document.getElementById('refreshCacheBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        clearGameCache();
+        btn.textContent = 'Refreshing...';
+        btn.disabled = true;
+        Promise.all([loadGamesAutomatically(), loadAppsAutomatically()]).then(() => {
+            btn.textContent = 'Done!';
+            setTimeout(() => { btn.textContent = 'Refresh Game List'; btn.disabled = false; }, 1500);
+        });
     });
 }
 
