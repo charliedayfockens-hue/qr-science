@@ -18,18 +18,12 @@ document.addEventListener('DOMContentLoaded', function () {
     setupSearch();
     loadSavedTheme();
     loadSavedCloak();
-    setupClock();
-    startSessionTimer();
-    updateStats();
-    updateLeaderboard();
-    updateRecentGamesList();
-    updateNewlyAddedList();
     loadGamesAutomatically();
-    loadAppsAutomatically();
 });
 
 // ===== NAVIGATION =====
 function setupNavigation() {
+    // Proxy button
     const proxyBtn = document.getElementById('proxyNavBtn');
     if (proxyBtn) {
         proxyBtn.addEventListener('click', () => {
@@ -42,17 +36,16 @@ function setupNavigation() {
         });
     }
 
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        if (!btn.dataset.view) return; // skip proxy button
-        btn.addEventListener('click', () => {
-            showView(btn.dataset.view);
-        });
+    // Settings modal
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeBtn = document.getElementById('closeSettingsBtn');
+    if (settingsBtn) settingsBtn.addEventListener('click', () => settingsModal.style.display = 'flex');
+    if (closeBtn)    closeBtn.addEventListener('click',    () => settingsModal.style.display = 'none');
+    if (settingsModal) settingsModal.addEventListener('click', e => {
+        if (e.target === settingsModal) settingsModal.style.display = 'none';
     });
 }
-
-function showView(name) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const view = document.getElementById('view-' + name);
     if (view) view.classList.add('active');
     const btn = document.querySelector(`.nav-btn[data-view="${name}"]`);
@@ -639,11 +632,7 @@ function setFavoritesFilter(on) {
         filterBtn.classList.toggle('active', on);
         filterBtn.textContent = on ? '🎮 All Games' : '⭐ Favorites';
     }
-    if (on) {
-        displayCards(allGames.filter(g => isGameFavorited(g.filename)), 'gamesGrid', 'noResults');
-    } else {
-        displayCards(allGames, 'gamesGrid', 'noResults');
-    }
+    displayCards(on ? allGames.filter(g => isGameFavorited(g.filename)) : allGames, 'gamesGrid', 'noResults');
 }
 
 // ===== RANDOM =====
