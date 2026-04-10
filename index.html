@@ -66,7 +66,7 @@
 
     <!-- STATS BAR -->
     <div class="stats-bar">
-      <span id="gameCount">0 GAMES LOADED</span>
+      <span id="gameCount">SCANNING...</span>
       <span class="stats-sep">|</span>
       <span id="favCount">0 FAVORITES</span>
     </div>
@@ -81,6 +81,14 @@
       <div class="no-results-text">
         <span class="glitch" data-text="// NO SIGNAL //">// NO SIGNAL //</span>
         <p>no games match your query.</p>
+      </div>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div class="loading-state" id="loadingState">
+      <div class="loading-text">
+        <span class="glitch" data-text="// SCANNING //">// SCANNING //</span>
+        <p>loading game index...</p>
       </div>
     </div>
 
@@ -100,7 +108,13 @@
         <button class="overlay-btn close-btn" id="overlayClose" title="Close">✕</button>
       </div>
     </div>
-    <iframe id="gameFrame" src="" frameborder="0" allowfullscreen></iframe>
+    <iframe
+      id="gameFrame"
+      src=""
+      frameborder="0"
+      allowfullscreen
+      allow="autoplay; fullscreen"
+    ></iframe>
   </div>
 
   <!-- TOAST NOTIFICATION -->
