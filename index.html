@@ -1,125 +1,65 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QR-SCIENCE</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qr-science // TERMINAL v1.337</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header class="terminal-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-text">qr-science</span>
+                <span class="blink">_</span>
+            </div>
+            <div class="status-bar">
+                <span class="status-dot"></span>
+                <span>CONNECTED // HACKER MODE ACTIVE</span>
+            </div>
+        </div>
+        
+        <div class="header-center">
+            <div class="search-box">
+                <span class="search-icon">❯</span>
+                <input type="text" id="search-input" placeholder="SEARCH GAMES... /ENTER" autocomplete="off">
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <div id="datetime" class="datetime"></div>
+            <button id="theme-toggle" class="theme-btn" title="TOGGLE LIGHT/DARK">☀️</button>
+            <button id="favorites-toggle" class="fav-toggle-btn">
+                <span id="fav-text">ALL</span>
+                <span class="star-icon">★</span>
+            </button>
+        </div>
+    </header>
 
-  <!-- SCANLINE OVERLAY -->
-  <div class="scanlines"></div>
+    <main class="main-content">
+        <div class="terminal-title">
+            <h1>AVAILABLE PAYLOADS // <span id="results-count">0</span> LOADED</h1>
+            <div class="scanline"></div>
+        </div>
+        
+        <div id="games-container" class="games-grid"></div>
+        
+        <div id="empty-state" class="empty-state hidden">
+            <div class="empty-icon">404</div>
+            <p>NO MATCHING PAYLOADS FOUND IN DATABASE</p>
+            <button onclick="resetSearch()">RESET TERMINAL</button>
+        </div>
+    </main>
 
-  <!-- HEADER -->
-  <header>
-    <div class="header-left">
-      <div class="logo">
-        <span class="logo-bracket">[</span>
-        <span class="logo-text">QR<span class="logo-dash">-</span><span class="logo-science">SCIENCE</span></span>
-        <span class="logo-bracket">]</span>
-      </div>
-      <div class="tagline">// access granted. play everything.</div>
-    </div>
+    <footer class="terminal-footer">
+        <div>© 2026 qr-science // RETRO ARCADE PROTOCOL v0.8 // GITHUB DEPLOYED</div>
+        <div class="footer-links">
+            <a href="https://github.com" target="_blank">SOURCE</a>
+            <span class="divider">|</span>
+            <span id="footer-time"></span>
+        </div>
+    </footer>
 
-    <div class="header-right">
-      <div class="datetime-block">
-        <div class="clock" id="clock">00:00:00</div>
-        <div class="date" id="date">MON 01 JAN 2000</div>
-      </div>
-      <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
-        <span id="themeIcon">◐</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- TERMINAL BAR -->
-  <div class="terminal-bar">
-    <span class="terminal-prompt">root@qr-science:~$</span>
-    <span class="terminal-text" id="terminalText"></span>
-    <span class="terminal-cursor">█</span>
-  </div>
-
-  <!-- MAIN CONTENT -->
-  <main>
-
-    <!-- SEARCH + FILTER -->
-    <div class="controls">
-      <div class="search-wrapper">
-        <span class="search-icon">&gt;_</span>
-        <input
-          type="text"
-          id="searchInput"
-          class="search-input"
-          placeholder="search games..."
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button class="clear-btn" id="clearSearch" title="Clear">✕</button>
-      </div>
-      <div class="filter-tabs">
-        <button class="tab active" data-filter="all">ALL</button>
-        <button class="tab" data-filter="favorites">★ FAVORITES</button>
-      </div>
-    </div>
-
-    <!-- STATS BAR -->
-    <div class="stats-bar">
-      <span id="gameCount">SCANNING...</span>
-      <span class="stats-sep">|</span>
-      <span id="favCount">0 FAVORITES</span>
-    </div>
-
-    <!-- GAME GRID -->
-    <div class="game-grid" id="gameGrid">
-      <!-- Cards injected by JS -->
-    </div>
-
-    <!-- NO RESULTS -->
-    <div class="no-results hidden" id="noResults">
-      <div class="no-results-text">
-        <span class="glitch" data-text="// NO SIGNAL //">// NO SIGNAL //</span>
-        <p>no games match your query.</p>
-      </div>
-    </div>
-
-    <!-- LOADING STATE -->
-    <div class="loading-state" id="loadingState">
-      <div class="loading-text">
-        <span class="glitch" data-text="// SCANNING //">// SCANNING //</span>
-        <p>loading game index...</p>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- GAME FRAME OVERLAY -->
-  <div class="game-overlay hidden" id="gameOverlay">
-    <div class="overlay-header">
-      <div class="overlay-title">
-        <span class="overlay-bracket">[</span>
-        <span id="overlayGameName">GAME</span>
-        <span class="overlay-bracket">]</span>
-      </div>
-      <div class="overlay-controls">
-        <button class="overlay-btn fav-overlay-btn" id="overlayFavBtn" title="Favorite">★</button>
-        <button class="overlay-btn" id="overlayFullscreen" title="Fullscreen">⛶</button>
-        <button class="overlay-btn close-btn" id="overlayClose" title="Close">✕</button>
-      </div>
-    </div>
-    <iframe
-      id="gameFrame"
-      src=""
-      frameborder="0"
-      allowfullscreen
-      allow="autoplay; fullscreen"
-    ></iframe>
-  </div>
-
-  <!-- TOAST NOTIFICATION -->
-  <div class="toast hidden" id="toast"></div>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
