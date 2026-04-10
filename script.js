@@ -1,45 +1,36 @@
 // ===== GLOBALS =====
 let allGames = [];
-let currentGame = null;
-let currentTheme = 'default';
 let showingFavorites = false;
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-    setupNavigation();
-    setupGameViewer();
-    setupThemeChanger();
-    setupTabCloaking();
-    setupEjectButton();
-    setupRandomButton();
+    startClock();
     setupFavoritesToggle();
-    setupSearch();
-    setupRefreshCacheBtn();
-    loadSavedTheme();
+    setupCloakMenu();
     loadSavedCloak();
     loadGamesAutomatically();
 });
 
-// ===== NAVIGATION (proxy + settings modal) =====
-function setupNavigation() {
-    const proxyBtn = document.getElementById('proxyNavBtn');
-    if (proxyBtn) {
-        proxyBtn.addEventListener('click', () => {
-            const url = (window.PROXY_URL || '').trim();
-            if (url) {
-                window.open(url, '_blank');
-            } else {
-                alert('Proxy not configured.\nPaste your URL into assets/proxy-config.js');
-            }
-        });
+// ===== CLOCK =====
+function startClock() {
+    function tick() {
+        const now = new Date();
+        const timeEl = document.getElementById('clockTime');
+        const dateEl = document.getElementById('clockDate');
+        if (timeEl) {
+            let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            timeEl.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ampm}`;
+        }
+        if (dateEl) {
+            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            dateEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+        }
     }
-
-    const settingsBtn  = document.getElementById('settingsBtn');
-    const modal        = document.getElementById('settingsModal');
-    const closeBtn     = document.getElementById('closeSettingsBtn');
-    if (settingsBtn) settingsBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
-    if (closeBtn)    closeBtn.addEventListener('click',    () => { modal.style.display = 'none'; });
-    if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    tick();
+    setInterval(tick, 1000);
 }
 
 // ===== CACHE (24 hr) =====
@@ -54,9 +45,6 @@ function getCache(key) {
 function setCache(key, data) {
     try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch {}
 }
-function clearGameCache() {
-    localStorage.removeItem('cache_games');
-}
 
 // ===== GAME LOADING =====
 async function loadGamesAutomatically() {
@@ -65,71 +53,67 @@ async function loadGamesAutomatically() {
     const cached = getCache('cache_games');
     if (cached && cached.length > 0) {
         allGames = cached;
-        displayCards(allGames);
-        updateGameCounter();
+        renderCards(allGames);
+        updateCounter();
         return;
     }
 
-    grid.innerHTML = '<div class="loading">Loading games...</div>';
+    grid.innerHTML = '<p class="loading-msg">Loading games...</p>';
 
     const { username, repo } = getGitHubInfo();
     let result = [];
 
     if (username && repo) {
-        result = await fetchFromGitHubAPI(username, repo, 'assets/games');
-        if (!result.length) result = await fetchFromGitHubAPI(username, repo, 'assets');
+        result = await fetchFromAPI(username, repo, 'assets/games');
+        if (!result.length) result = await fetchFromAPI(username, repo, 'assets');
     }
-    if (!result.length) result = await fetchFromDirectoryListing('assets/games/');
-    if (!result.length) result = await fetchFromDirectoryListing('assets/');
+    if (!result.length) result = await fetchFromListing('assets/games/');
+    if (!result.length) result = await fetchFromListing('assets/');
 
-    if (result.length > 0) {
+    if (result.length) {
         allGames = result;
         setCache('cache_games', allGames);
-        displayCards(allGames);
-        updateGameCounter();
+        renderCards(allGames);
+        updateCounter();
     } else {
-        grid.innerHTML = '<div class="loading">No games found. Add HTML files or folders to <code>assets/games/</code>.</div>';
+        grid.innerHTML = '<p class="loading-msg">No games found. Add folders or HTML files to <code>assets/games/</code>.</p>';
     }
 }
 
 function getGitHubInfo() {
-    const hostname = window.location.hostname;
-    const parts = window.location.pathname.split('/').filter(p => p);
-    if (hostname.includes('github.io') && parts.length >= 1) {
-        return { username: hostname.split('.')[0], repo: parts[0] };
-    }
+    const host = window.location.hostname;
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (host.includes('github.io') && parts.length >= 1)
+        return { username: host.split('.')[0], repo: parts[0] };
     return { username: '', repo: '' };
 }
 
-async function fetchFromGitHubAPI(username, repo, path) {
+async function fetchFromAPI(username, repo, path) {
     try {
-        const resp = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${path}`);
-        if (!resp.ok) return [];
-        const files = await resp.json();
-        const basePath = path + '/';
-
+        const r = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${path}`);
+        if (!r.ok) return [];
+        const files = await r.json();
+        const base = path + '/';
         const singles = files
             .filter(f => f.type === 'file' && f.name.endsWith('.html'))
-            .map(f => ({ filename: f.name, displayName: formatName(f.name), basePath }));
-
+            .map(f => ({ filename: f.name, displayName: formatName(f.name), basePath: base }));
         const folders = await Promise.all(
             files.filter(f => f.type === 'dir').map(async f => {
-                const entry = await resolveGitHubEntry(username, repo, path + '/' + f.name, f.name);
+                const entry = await resolveAPIEntry(username, repo, path + '/' + f.name, f.name);
                 if (!entry) return null;
-                return { filename: f.name + '/' + entry, displayName: formatName(f.name), basePath };
+                return { filename: f.name + '/' + entry, displayName: formatName(f.name), basePath: base };
             })
         );
-
         return [...singles, ...folders.filter(Boolean)];
     } catch { return []; }
 }
 
-async function resolveGitHubEntry(username, repo, folderPath, folderName) {
+async function resolveAPIEntry(username, repo, folderPath, folderName) {
     const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
     try {
-        const resp = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`);
-        if (!resp.ok) return 'index.html';
-        const files = await resp.json();
+        const r = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`);
+        if (!r.ok) return 'index.html';
+        const files = await r.json();
         const html = files.filter(f => f.type === 'file' && f.name.endsWith('.html')).map(f => f.name);
         if (!html.length) return null;
         for (const p of PRIORITY) if (html.includes(p)) return p;
@@ -137,24 +121,22 @@ async function resolveGitHubEntry(username, repo, folderPath, folderName) {
     } catch { return 'index.html'; }
 }
 
-async function fetchFromDirectoryListing(path) {
+async function fetchFromListing(path) {
     try {
-        const resp = await fetch(path);
-        if (!resp.ok) return [];
-        const doc = new DOMParser().parseFromString(await resp.text(), 'text/html');
+        const r = await fetch(path);
+        if (!r.ok) return [];
+        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
         const singles = [], folderNames = [];
         doc.querySelectorAll('a').forEach(a => {
             const href = a.getAttribute('href');
             if (!href) return;
-            if (href.endsWith('.html')) {
+            if (href.endsWith('.html'))
                 singles.push({ filename: href.split('/').pop().split('?')[0], displayName: formatName(href), basePath: path });
-            } else if (href.endsWith('/') && href !== '../' && href !== './' && !href.startsWith('?')) {
-                const n = href.replace(/\/$/, '').split('/').pop();
-                if (n) folderNames.push(n);
-            }
+            else if (href.endsWith('/') && href !== '../' && href !== './' && !href.startsWith('?'))
+                folderNames.push(href.replace(/\/$/, '').split('/').pop());
         });
         const folders = await Promise.all(folderNames.map(async n => {
-            const entry = await resolveDirectoryEntry(path + n + '/', n);
+            const entry = await resolveListingEntry(path + n + '/', n);
             if (!entry) return null;
             return { filename: n + '/' + entry, displayName: formatName(n), basePath: path };
         }));
@@ -162,18 +144,18 @@ async function fetchFromDirectoryListing(path) {
     } catch { return []; }
 }
 
-async function resolveDirectoryEntry(folderUrl, folderName) {
+async function resolveListingEntry(url, name) {
     const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
     try {
-        const resp = await fetch(folderUrl);
-        if (!resp.ok) return 'index.html';
-        const doc = new DOMParser().parseFromString(await resp.text(), 'text/html');
+        const r = await fetch(url);
+        if (!r.ok) return 'index.html';
+        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
         const html = [...doc.querySelectorAll('a')]
             .map(a => a.getAttribute('href')).filter(h => h && h.endsWith('.html'))
             .map(h => h.split('/').pop().split('?')[0]);
         if (!html.length) return null;
         for (const p of PRIORITY) if (html.includes(p)) return p;
-        return html.find(f => f.replace('.html','').toLowerCase() === folderName.toLowerCase()) || html[0];
+        return html.find(f => f.replace('.html','').toLowerCase() === name.toLowerCase()) || html[0];
     } catch { return 'index.html'; }
 }
 
@@ -183,8 +165,8 @@ function formatName(filename) {
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
-// ===== DISPLAY CARDS =====
-function displayCards(items) {
+// ===== RENDER CARDS =====
+function renderCards(items) {
     const grid = document.getElementById('gamesGrid');
     const noResults = document.getElementById('noResults');
     grid.innerHTML = '';
@@ -201,11 +183,12 @@ function displayCards(items) {
         card.style.backgroundColor = hashColor(item.displayName);
 
         const star = document.createElement('button');
-        star.className = 'card-star' + (isFavorited(item.filename) ? ' active' : '');
+        star.className = 'card-star' + (isFav(item.filename) ? ' active' : '');
         star.textContent = '⭐';
+        star.title = 'Favorite';
         star.addEventListener('click', e => {
             e.stopPropagation();
-            toggleFavorite(item.filename);
+            toggleFav(item.filename);
             star.classList.toggle('active');
         });
 
@@ -215,7 +198,7 @@ function displayCards(items) {
 
         card.appendChild(star);
         card.appendChild(label);
-        card.addEventListener('click', () => launchGame(item));
+        card.addEventListener('click', () => openGame(item));
         grid.appendChild(card);
         loadThumbnail(item.displayName, card);
     });
@@ -245,61 +228,24 @@ function loadThumbnail(displayName, card) {
     next();
 }
 
-function updateGameCounter() {
+function updateCounter() {
     const el = document.getElementById('gameCounter');
     if (el) el.textContent = `${allGames.length} Game${allGames.length !== 1 ? 's' : ''}`;
 }
 
-// ===== GAME VIEWER =====
-function launchGame(game) {
+// ===== OPEN GAME IN NEW TAB =====
+function openGame(game) {
     if (!game || !game.filename) return;
-    currentGame = game;
     const src = (game.basePath || 'assets/') + game.filename;
-    const frame = document.getElementById('gameFrame');
-    frame.src = '';
-    document.getElementById('viewerGameTitle').textContent = game.displayName;
-    document.getElementById('gameViewer').classList.add('active');
-    setTimeout(() => { frame.src = src; }, 150);
-}
-
-function closeGameViewer() {
-    document.getElementById('gameViewer').classList.remove('active');
-    document.getElementById('gameFrame').src = '';
-}
-
-function setupGameViewer() {
-    document.getElementById('exitViewerBtn').addEventListener('click', closeGameViewer);
-    document.getElementById('fsBtn').addEventListener('click', () => {
-        const v = document.getElementById('gameViewer');
-        if (!document.fullscreenElement) v.requestFullscreen().catch(() => {});
-        else document.exitFullscreen();
-    });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && !document.fullscreenElement)
-            document.getElementById('gameViewer').classList.remove('active');
-    });
-}
-
-// ===== SEARCH =====
-function setupSearch() {
-    const bar = document.getElementById('searchBar');
-    if (!bar) return;
-    bar.addEventListener('input', () => {
-        const term = bar.value.toLowerCase().trim();
-        const list = showingFavorites ? allGames.filter(g => isFavorited(g.filename)) : allGames;
-        displayCards(term ? list.filter(g => g.displayName.toLowerCase().includes(term)) : list);
-    });
-    bar.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { bar.value = ''; displayCards(showingFavorites ? allGames.filter(g => isFavorited(g.filename)) : allGames); }
-    });
+    window.open(src, '_blank');
 }
 
 // ===== FAVORITES =====
-function isFavorited(filename) {
+function isFav(filename) {
     try { return JSON.parse(localStorage.getItem('fav_' + filename) || 'false'); } catch { return false; }
 }
-function toggleFavorite(filename) {
-    localStorage.setItem('fav_' + filename, JSON.stringify(!isFavorited(filename)));
+function toggleFav(filename) {
+    localStorage.setItem('fav_' + filename, JSON.stringify(!isFav(filename)));
 }
 
 function setupFavoritesToggle() {
@@ -309,113 +255,9 @@ function setupFavoritesToggle() {
         showingFavorites = !showingFavorites;
         btn.classList.toggle('active', showingFavorites);
         btn.textContent = showingFavorites ? '🎮 All Games' : '⭐ Favorites';
-        displayCards(showingFavorites ? allGames.filter(g => isFavorited(g.filename)) : allGames);
+        const list = showingFavorites ? allGames.filter(g => isFav(g.filename)) : allGames;
+        renderCards(list);
     });
-}
-
-// ===== RANDOM =====
-function setupRandomButton() {
-    const btn = document.getElementById('randomBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        if (!allGames.length) { alert('Games still loading, try again in a moment.'); return; }
-        launchGame(allGames[Math.floor(Math.random() * allGames.length)]);
-    });
-}
-
-// ===== EJECT =====
-function setupEjectButton() {
-    const btn = document.getElementById('ejectButton');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        window.close();
-        if (!window.closed) window.location.href = 'about:blank';
-    });
-}
-
-// ===== REFRESH CACHE =====
-function setupRefreshCacheBtn() {
-    const btn = document.getElementById('refreshCacheBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        clearGameCache();
-        btn.textContent = 'Refreshing...';
-        btn.disabled = true;
-        loadGamesAutomatically().then(() => {
-            btn.textContent = 'Done!';
-            setTimeout(() => { btn.textContent = 'Refresh Game List'; btn.disabled = false; }, 1500);
-        });
-    });
-}
-
-// ===== THEME =====
-function setupThemeChanger() {
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            applyTheme(btn.dataset.theme);
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const panel = document.getElementById('customColorPanel');
-            if (panel) panel.style.display = btn.dataset.theme === 'custom' ? 'block' : 'none';
-        });
-    });
-    const bg1 = document.getElementById('bgColorPicker');
-    const bg2 = document.getElementById('bgShadePicker');
-    const tc  = document.getElementById('textColorPicker');
-    const fp  = document.getElementById('fontPicker');
-    if (bg1) bg1.addEventListener('input', updateCustomTheme);
-    if (bg2) bg2.addEventListener('input', updateCustomTheme);
-    if (tc)  tc.addEventListener('input',  updateCustomTheme);
-    if (fp)  fp.addEventListener('change', () => {
-        document.body.style.fontFamily = fp.value;
-        localStorage.setItem('customFont', fp.value);
-    });
-}
-
-function applyTheme(theme) {
-    currentTheme = theme;
-    const ALL = ['rainbow','galaxy','custom','neon-cyberpunk','dark-mode','retro-arcade',
-        'forest-fantasy','fire-lava','ice-kingdom','ocean-depths','desert-storm','glitch-mode',
-        'synthwave','blood-moon','minimal-white','matrix','galaxy-rainbow','steampunk',
-        'cartoon-pop','shadow-realm','snowy-night'];
-    ALL.forEach(c => document.body.classList.remove('theme-' + c));
-    if (theme !== 'default') document.body.classList.add('theme-' + theme);
-    localStorage.setItem('selectedTheme', theme);
-    if (theme === 'custom') {
-        const bg1 = document.getElementById('bgColorPicker');
-        const bg2 = document.getElementById('bgShadePicker');
-        const tc  = document.getElementById('textColorPicker');
-        const fp  = document.getElementById('fontPicker');
-        if (bg1) bg1.value = localStorage.getItem('customBgColor')    || '#667eea';
-        if (bg2) bg2.value = localStorage.getItem('customBgShade')    || '#764ba2';
-        if (tc)  tc.value  = localStorage.getItem('customTextColor')  || '#667eea';
-        if (fp && localStorage.getItem('customFont')) fp.value = localStorage.getItem('customFont');
-        updateCustomTheme();
-    }
-}
-
-function updateCustomTheme() {
-    const bg1 = document.getElementById('bgColorPicker');
-    const bg2 = document.getElementById('bgShadePicker');
-    const tc  = document.getElementById('textColorPicker');
-    if (!bg1 || !bg2 || !tc) return;
-    document.body.style.setProperty('--custom-bg-gradient', `linear-gradient(135deg, ${bg1.value} 0%, ${bg2.value} 100%)`);
-    document.body.style.setProperty('--custom-text-color', tc.value);
-    localStorage.setItem('customBgColor',   bg1.value);
-    localStorage.setItem('customBgShade',   bg2.value);
-    localStorage.setItem('customTextColor', tc.value);
-}
-
-function loadSavedTheme() {
-    const saved = localStorage.getItem('selectedTheme') || 'default';
-    applyTheme(saved);
-    document.querySelectorAll('.theme-btn').forEach(b => {
-        if (b.dataset.theme === saved) b.classList.add('active');
-    });
-    if (saved === 'custom') {
-        const panel = document.getElementById('customColorPanel');
-        if (panel) panel.style.display = 'block';
-    }
 }
 
 // ===== TAB CLOAK =====
@@ -428,12 +270,24 @@ const CLOAKS = {
     'youtube':          { title: 'YouTube',            favicon: 'https://www.youtube.com/favicon.ico' }
 };
 
-function setupTabCloaking() {
-    document.querySelectorAll('.cloak-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            applyCloak(btn.dataset.cloak);
-            document.querySelectorAll('.cloak-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+function setupCloakMenu() {
+    const btn  = document.getElementById('cloakBtn');
+    const menu = document.getElementById('cloakMenu');
+    if (!btn || !menu) return;
+
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', () => { menu.style.display = 'none'; });
+
+    menu.querySelectorAll('.cloak-opt').forEach(opt => {
+        opt.addEventListener('click', e => {
+            e.stopPropagation();
+            applyCloak(opt.dataset.cloak);
+            menu.querySelectorAll('.cloak-opt').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            menu.style.display = 'none';
         });
     });
 }
@@ -450,7 +304,7 @@ function applyCloak(key) {
 function loadSavedCloak() {
     const saved = localStorage.getItem('selectedCloak') || 'none';
     applyCloak(saved);
-    document.querySelectorAll('.cloak-btn').forEach(b => {
-        if (b.dataset.cloak === saved) b.classList.add('active');
+    document.querySelectorAll('.cloak-opt').forEach(o => {
+        if (o.dataset.cloak === saved) o.classList.add('active');
     });
 }

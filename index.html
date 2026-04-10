@@ -4,160 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cool Science Games</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&family=Rajdhani:wght@400;600;700&family=Audiowide&family=VT323&family=Russo+One&family=Bungee&family=Exo+2:wght@400;700&family=Share+Tech+Mono&family=Pixelify+Sans:wght@400;700&family=Cinzel:wght@400;700&family=Creepster&family=Oxanium:wght@400;700&family=Silkscreen:wght@400;700&family=Teko:wght@400;700&family=Rubik:wght@400;700&family=Montserrat:wght@400;700&family=Freckle+Face&family=Chakra+Petch:wght@400;700&family=Anton&family=Nosifer&family=Inter:wght@400;700&family=Luckiest+Guy&family=Aldrich&family=Roboto+Mono:wght@400;700&family=Unica+One&family=Major+Mono+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="stars"></div>
-    <canvas id="matrixCanvas" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
 
-    <!-- Top Bar -->
     <header class="top-bar">
         <span class="site-brand">Cool Science Games</span>
-        <input type="text" id="searchBar" class="search-bar" placeholder="Search games...">
-        <div class="top-bar-btns">
+        <div class="clock-block">
+            <span id="clockTime"></span>
+            <span id="clockDate"></span>
+        </div>
+        <div class="top-actions">
             <button id="favFilterBtn" class="top-btn">⭐ Favorites</button>
-            <button id="randomBtn" class="top-btn">🎲 Random</button>
-            <button id="proxyNavBtn" class="top-btn">🔒 Proxy</button>
-            <button id="settingsBtn" class="top-btn">⚙️</button>
-            <button id="ejectButton" class="top-btn">🚀</button>
+            <div class="cloak-wrap">
+                <button id="cloakBtn" class="top-btn">🎭</button>
+                <div id="cloakMenu" class="cloak-menu" style="display:none;">
+                    <button class="cloak-opt" data-cloak="none">None</button>
+                    <button class="cloak-opt" data-cloak="schoology">Schoology</button>
+                    <button class="cloak-opt" data-cloak="google-classroom">Google Classroom</button>
+                    <button class="cloak-opt" data-cloak="zoom">Zoom</button>
+                    <button class="cloak-opt" data-cloak="google">Google</button>
+                    <button class="cloak-opt" data-cloak="youtube">YouTube</button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- Game counter strip -->
-    <div class="counter-strip">
-        <span id="gameCounter"></span>
-    </div>
+    <div class="counter-strip"><span id="gameCounter"></span></div>
 
-    <!-- Games Grid -->
-    <div id="gamesGrid" class="games-grid main-grid"></div>
+    <div id="gamesGrid" class="games-grid"></div>
     <div id="noResults" class="no-results" style="display:none;">No games found.</div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="settings-modal" style="display:none;">
-        <div class="settings-modal-box">
-            <div class="settings-modal-header">
-                <h2>⚙️ Settings</h2>
-                <button id="closeSettingsBtn" class="settings-close-btn">✕</button>
-            </div>
-
-            <div class="settings-section">
-                <h3>🎨 Theme</h3>
-                <div class="theme-buttons-grid">
-                    <button class="theme-btn" data-theme="default">Default</button>
-                    <button class="theme-btn" data-theme="rainbow">Rainbow</button>
-                    <button class="theme-btn" data-theme="galaxy">Galaxy</button>
-                    <button class="theme-btn" data-theme="neon-cyberpunk">Neon Cyberpunk</button>
-                    <button class="theme-btn" data-theme="dark-mode">Dark Mode</button>
-                    <button class="theme-btn" data-theme="retro-arcade">Retro Arcade</button>
-                    <button class="theme-btn" data-theme="forest-fantasy">Forest Fantasy</button>
-                    <button class="theme-btn" data-theme="fire-lava">Fire &amp; Lava</button>
-                    <button class="theme-btn" data-theme="ice-kingdom">Ice Kingdom</button>
-                    <button class="theme-btn" data-theme="ocean-depths">Ocean Depths</button>
-                    <button class="theme-btn" data-theme="desert-storm">Desert Storm</button>
-                    <button class="theme-btn" data-theme="glitch-mode">Glitch Mode</button>
-                    <button class="theme-btn" data-theme="synthwave">Synthwave Sunset</button>
-                    <button class="theme-btn" data-theme="blood-moon">Blood Moon</button>
-                    <button class="theme-btn" data-theme="minimal-white">Minimal White</button>
-                    <button class="theme-btn" data-theme="matrix">Matrix Code</button>
-                    <button class="theme-btn" data-theme="galaxy-rainbow">Galaxy Rainbow</button>
-                    <button class="theme-btn" data-theme="steampunk">Steampunk</button>
-                    <button class="theme-btn" data-theme="cartoon-pop">Cartoon Pop</button>
-                    <button class="theme-btn" data-theme="shadow-realm">Shadow Realm</button>
-                    <button class="theme-btn" data-theme="snowy-night">Snowy Night</button>
-                    <button class="theme-btn" data-theme="custom">Custom</button>
-                </div>
-                <div id="customColorPanel" class="custom-color-panel" style="display:none;">
-                    <h4>Custom Colors &amp; Font</h4>
-                    <div class="color-controls">
-                        <div class="color-control">
-                            <label>Background Color:</label>
-                            <input type="color" id="bgColorPicker" value="#667eea">
-                        </div>
-                        <div class="color-control">
-                            <label>Background Shade:</label>
-                            <input type="color" id="bgShadePicker" value="#764ba2">
-                        </div>
-                        <div class="color-control">
-                            <label>Button Text Color:</label>
-                            <input type="color" id="textColorPicker" value="#667eea">
-                        </div>
-                        <div class="color-control">
-                            <label>Font:</label>
-                            <select id="fontPicker" class="font-picker">
-                                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Default</option>
-                                <option value="'Orbitron', sans-serif">Orbitron</option>
-                                <option value="'Press Start 2P', cursive">Press Start 2P</option>
-                                <option value="'Rajdhani', sans-serif">Rajdhani</option>
-                                <option value="'Audiowide', cursive">Audiowide</option>
-                                <option value="'VT323', monospace">VT323</option>
-                                <option value="'Russo One', sans-serif">Russo One</option>
-                                <option value="'Bungee', cursive">Bungee</option>
-                                <option value="'Exo 2', sans-serif">Exo 2</option>
-                                <option value="'Share Tech Mono', monospace">Share Tech Mono</option>
-                                <option value="'Pixelify Sans', cursive">Pixelify Sans</option>
-                                <option value="'Cinzel', serif">Cinzel</option>
-                                <option value="'Creepster', cursive">Creepster</option>
-                                <option value="'Oxanium', cursive">Oxanium</option>
-                                <option value="'Silkscreen', cursive">Silkscreen</option>
-                                <option value="'Teko', sans-serif">Teko</option>
-                                <option value="'Rubik', sans-serif">Rubik</option>
-                                <option value="'Montserrat', sans-serif">Montserrat</option>
-                                <option value="'Freckle Face', cursive">Freckle Face</option>
-                                <option value="'Chakra Petch', sans-serif">Chakra Petch</option>
-                                <option value="'Anton', sans-serif">Anton</option>
-                                <option value="'Nosifer', cursive">Nosifer</option>
-                                <option value="'Inter', sans-serif">Inter</option>
-                                <option value="'Luckiest Guy', cursive">Luckiest Guy</option>
-                                <option value="'Aldrich', sans-serif">Aldrich</option>
-                                <option value="'Roboto Mono', monospace">Roboto Mono</option>
-                                <option value="'Unica One', cursive">Unica One</option>
-                                <option value="'Major Mono Display', monospace">Major Mono Display</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>🎭 Tab Cloak</h3>
-                <div class="cloak-buttons-inline">
-                    <button class="cloak-btn" data-cloak="none">None (Default)</button>
-                    <button class="cloak-btn" data-cloak="schoology">Schoology</button>
-                    <button class="cloak-btn" data-cloak="google-classroom">Google Classroom</button>
-                    <button class="cloak-btn" data-cloak="zoom">Zoom</button>
-                    <button class="cloak-btn" data-cloak="google">Google</button>
-                    <button class="cloak-btn" data-cloak="youtube">YouTube</button>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>🔄 Game List</h3>
-                <p style="opacity:0.6;font-size:0.85rem;margin-bottom:10px;">Cached 24 hrs. Click after adding new games.</p>
-                <button id="refreshCacheBtn" class="cloak-btn">Refresh Game List</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Game Viewer Overlay -->
-    <div id="gameViewer" class="game-viewer">
-        <div class="game-toolbar">
-            <span id="viewerGameTitle" class="viewer-title">Game</span>
-            <div class="toolbar-controls">
-                <button class="toolbar-btn" id="fsBtn">&#9678; Fullscreen</button>
-                <button class="toolbar-btn exit-toolbar-btn" id="exitViewerBtn">&#10005; Exit</button>
-            </div>
-        </div>
-        <div class="game-frame-container">
-            <iframe id="gameFrame" class="game-frame"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                allowfullscreen></iframe>
-        </div>
-    </div>
-
-    <script src="assets/proxy-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
