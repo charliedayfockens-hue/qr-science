@@ -1,310 +1,307 @@
-// ===== GLOBALS =====
-let allGames = [];
-let showingFavorites = false;
+/* ============================================================
+   QR-SCIENCE — script.js
+   ============================================================ */
 
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
-    startClock();
-    setupFavoritesToggle();
-    setupCloakMenu();
-    loadSavedCloak();
-    loadGamesAutomatically();
+'use strict';
+
+/* ──────────────────────────────────────────────
+   GAME REGISTRY
+   Add your games here.
+
+   id       : unique slug (used internally)
+   name     : display name on the card
+   icon     : emoji shown on card
+   multi    : true  → assets/games/<id>/index.html
+              false → assets/games/<id>.html
+   ────────────────────────────────────────────── */
+const GAME_REGISTRY = [
+  { id: 'snake',       name: 'SNAKE',       icon: '🐍', multi: false },
+  { id: 'tetris',      name: 'TETRIS',      icon: '🟦', multi: false },
+  { id: 'pong',        name: 'PONG',        icon: '🏓', multi: false },
+  { id: 'pacman',      name: 'PACMAN',      icon: '👾', multi: true  },
+  { id: 'space-inv',   name: 'SPACE INV',   icon: '🚀', multi: true  },
+  { id: 'minesweeper', name: 'MINESWEEPER', icon: '💣', multi: false },
+  /* ── add more games below this line ── */
+  // { id: 'mygame', name: 'MY GAME', icon: '🎮', multi: true },
+];
+
+/* ──────────────────────────────────────────────
+   STATE
+   ────────────────────────────────────────────── */
+let favorites    = JSON.parse(localStorage.getItem('qrscience_favs') || '[]');
+let activeFilter = 'all';
+let searchQuery  = '';
+let currentGame  = null;
+
+/* ──────────────────────────────────────────────
+   DOM REFERENCES
+   ────────────────────────────────────────────── */
+const grid           = document.getElementById('gameGrid');
+const searchInput    = document.getElementById('searchInput');
+const clearSearch    = document.getElementById('clearSearch');
+const noResults      = document.getElementById('noResults');
+const gameCount      = document.getElementById('gameCount');
+const favCount       = document.getElementById('favCount');
+const themeToggle    = document.getElementById('themeToggle');
+const themeIcon      = document.getElementById('themeIcon');
+const gameOverlay    = document.getElementById('gameOverlay');
+const gameFrame      = document.getElementById('gameFrame');
+const overlayClose   = document.getElementById('overlayClose');
+const overlayFavBtn  = document.getElementById('overlayFavBtn');
+const overlayFsBtn   = document.getElementById('overlayFullscreen');
+const overlayName    = document.getElementById('overlayGameName');
+const clockEl        = document.getElementById('clock');
+const dateEl         = document.getElementById('date');
+const terminalTextEl = document.getElementById('terminalText');
+const toastEl        = document.getElementById('toast');
+const tabBtns        = document.querySelectorAll('.tab');
+
+/* ──────────────────────────────────────────────
+   CLOCK & DATE
+   ────────────────────────────────────────────── */
+const DAYS   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN',
+                'JUL','AUG','SEP','OCT','NOV','DEC'];
+
+function updateClock() {
+  const now = new Date();
+  const hh  = String(now.getHours()).padStart(2, '0');
+  const mm  = String(now.getMinutes()).padStart(2, '0');
+  const ss  = String(now.getSeconds()).padStart(2, '0');
+  const day = DAYS[now.getDay()];
+  const dd  = String(now.getDate()).padStart(2, '0');
+  const mon = MONTHS[now.getMonth()];
+  const yr  = now.getFullYear();
+  clockEl.textContent = `${hh}:${mm}:${ss}`;
+  dateEl.textContent  = `${day} ${dd} ${mon} ${yr}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ──────────────────────────────────────────────
+   TERMINAL TYPEWRITER
+   ────────────────────────────────────────────── */
+const TERMINAL_LINES = [
+  'initializing qr-science...',
+  'scanning /assets/games/...',
+  `${GAME_REGISTRY.length} game(s) found.`,
+  'all systems nominal.',
+  'welcome back, operator.',
+  'choose your game. escape is not an option.',
+  'qr-science: where curiosity meets code.',
+];
+let tIdx = 0, cIdx = 0, deleting = false, tPause = 0;
+
+function typeTerminal() {
+  if (tPause > 0) { tPause--; setTimeout(typeTerminal, 80); return; }
+  const line = TERMINAL_LINES[tIdx];
+  if (!deleting) {
+    cIdx++;
+    terminalTextEl.textContent = line.slice(0, cIdx);
+    if (cIdx >= line.length) { deleting = true; tPause = 30; }
+    setTimeout(typeTerminal, 60);
+  } else {
+    cIdx--;
+    terminalTextEl.textContent = line.slice(0, cIdx);
+    if (cIdx <= 0) {
+      deleting = false;
+      tIdx = (tIdx + 1) % TERMINAL_LINES.length;
+      tPause = 8;
+    }
+    setTimeout(typeTerminal, 30);
+  }
+}
+setTimeout(typeTerminal, 800);
+
+/* ──────────────────────────────────────────────
+   THEME TOGGLE
+   ────────────────────────────────────────────── */
+const savedTheme = localStorage.getItem('qrscience_theme') || 'dark';
+setTheme(savedTheme);
+
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  themeIcon.textContent = t === 'dark' ? '◐' : '●';
+  localStorage.setItem('qrscience_theme', t);
+}
+
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+  showToast(current === 'dark' ? '// LIGHT MODE ENGAGED' : '// DARK MODE ENGAGED');
 });
 
-// ===== CLOCK =====
-function startClock() {
-    function tick() {
-        const now = new Date();
-        const timeEl = document.getElementById('clockTime');
-        const dateEl = document.getElementById('clockDate');
-        if (timeEl) {
-            let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            timeEl.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ampm}`;
-        }
-        if (dateEl) {
-            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            dateEl.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
-        }
-    }
-    tick();
-    setInterval(tick, 1000);
+/* ──────────────────────────────────────────────
+   TOAST
+   ────────────────────────────────────────────── */
+let toastTimer;
+function showToast(msg, duration = 2200) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.classList.remove('hidden');
+  toastTimer = setTimeout(() => toastEl.classList.add('hidden'), duration);
 }
 
-// ===== CACHE (24 hr) =====
-const CACHE_TTL = 24 * 60 * 60 * 1000;
-function getCache(key) {
-    try {
-        const c = JSON.parse(localStorage.getItem(key));
-        if (c && Date.now() - c.ts < CACHE_TTL) return c.data;
-    } catch {}
-    return null;
-}
-function setCache(key, data) {
-    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch {}
-}
+/* ──────────────────────────────────────────────
+   FAVORITES
+   ────────────────────────────────────────────── */
+function isFav(id) { return favorites.includes(id); }
 
-// ===== GAME LOADING =====
-async function loadGamesAutomatically() {
-    const grid = document.getElementById('gamesGrid');
-
-    const cached = getCache('cache_games');
-    if (cached && cached.length > 0) {
-        allGames = cached;
-        renderCards(allGames);
-        updateCounter();
-        return;
-    }
-
-    grid.innerHTML = '<p class="loading-msg">Loading games...</p>';
-
-    const { username, repo } = getGitHubInfo();
-    let result = [];
-
-    if (username && repo) {
-        result = await fetchFromAPI(username, repo, 'assets/games');
-        if (!result.length) result = await fetchFromAPI(username, repo, 'assets');
-    }
-    if (!result.length) result = await fetchFromListing('assets/games/');
-    if (!result.length) result = await fetchFromListing('assets/');
-
-    if (result.length) {
-        allGames = result;
-        setCache('cache_games', allGames);
-        renderCards(allGames);
-        updateCounter();
-    } else {
-        grid.innerHTML = '<p class="loading-msg">No games found. Add folders or HTML files to <code>assets/games/</code>.</p>';
-    }
+function toggleFav(id, e) {
+  if (e) e.stopPropagation();
+  if (isFav(id)) {
+    favorites = favorites.filter(f => f !== id);
+    showToast('★ removed from favorites');
+  } else {
+    favorites.push(id);
+    showToast('★ added to favorites');
+  }
+  localStorage.setItem('qrscience_favs', JSON.stringify(favorites));
+  renderGrid();
+  syncOverlayFavBtn();
 }
 
-function getGitHubInfo() {
-    const host = window.location.hostname;
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    if (host.includes('github.io') && parts.length >= 1)
-        return { username: host.split('.')[0], repo: parts[0] };
-    return { username: '', repo: '' };
+function syncOverlayFavBtn() {
+  if (!currentGame) return;
+  if (isFav(currentGame.id)) {
+    overlayFavBtn.classList.add('active');
+    overlayFavBtn.title = 'Unfavorite';
+  } else {
+    overlayFavBtn.classList.remove('active');
+    overlayFavBtn.title = 'Favorite';
+  }
 }
 
-async function fetchFromAPI(username, repo, path) {
-    try {
-        const r = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${path}`);
-        if (!r.ok) return [];
-        const files = await r.json();
-        const base = path + '/';
-        const singles = files
-            .filter(f => f.type === 'file' && f.name.endsWith('.html'))
-            .map(f => ({ filename: f.name, displayName: formatName(f.name), basePath: base }));
-        const folders = await Promise.all(
-            files.filter(f => f.type === 'dir').map(async f => {
-                const entry = await resolveAPIEntry(username, repo, path + '/' + f.name, f.name);
-                if (!entry) return null;
-                return { filename: f.name + '/' + entry, displayName: formatName(f.name), basePath: base };
-            })
-        );
-        return [...singles, ...folders.filter(Boolean)];
-    } catch { return []; }
+/* ──────────────────────────────────────────────
+   GAME URL RESOLVER
+   ────────────────────────────────────────────── */
+function getGameURL(game) {
+  return game.multi
+    ? `assets/games/${game.id}/index.html`
+    : `assets/games/${game.id}.html`;
 }
 
-async function resolveAPIEntry(username, repo, folderPath, folderName) {
-    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
-    try {
-        const r = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`);
-        if (!r.ok) return 'index.html';
-        const files = await r.json();
-        const html = files.filter(f => f.type === 'file' && f.name.endsWith('.html')).map(f => f.name);
-        if (!html.length) return null;
-        for (const p of PRIORITY) if (html.includes(p)) return p;
-        return html.find(f => f.replace('.html','').toLowerCase() === folderName.toLowerCase()) || html[0];
-    } catch { return 'index.html'; }
-}
-
-async function fetchFromListing(path) {
-    try {
-        const r = await fetch(path);
-        if (!r.ok) return [];
-        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
-        const singles = [], folderNames = [];
-        doc.querySelectorAll('a').forEach(a => {
-            const href = a.getAttribute('href');
-            if (!href) return;
-            if (href.endsWith('.html'))
-                singles.push({ filename: href.split('/').pop().split('?')[0], displayName: formatName(href), basePath: path });
-            else if (href.endsWith('/') && href !== '../' && href !== './' && !href.startsWith('?'))
-                folderNames.push(href.replace(/\/$/, '').split('/').pop());
-        });
-        const folders = await Promise.all(folderNames.map(async n => {
-            const entry = await resolveListingEntry(path + n + '/', n);
-            if (!entry) return null;
-            return { filename: n + '/' + entry, displayName: formatName(n), basePath: path };
-        }));
-        return [...singles, ...folders.filter(Boolean)];
-    } catch { return []; }
-}
-
-async function resolveListingEntry(url, name) {
-    const PRIORITY = ['index.html', 'main.html', 'game.html', 'app.html'];
-    try {
-        const r = await fetch(url);
-        if (!r.ok) return 'index.html';
-        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
-        const html = [...doc.querySelectorAll('a')]
-            .map(a => a.getAttribute('href')).filter(h => h && h.endsWith('.html'))
-            .map(h => h.split('/').pop().split('?')[0]);
-        if (!html.length) return null;
-        for (const p of PRIORITY) if (html.includes(p)) return p;
-        return html.find(f => f.replace('.html','').toLowerCase() === name.toLowerCase()) || html[0];
-    } catch { return 'index.html'; }
-}
-
-function formatName(filename) {
-    let name = filename.replace(/\/index\.html$/, '').replace(/\.html$/, '').split('/').pop();
-    return name.replace(/[_-]/g, ' ').split(' ')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-}
-
-// ===== RENDER CARDS =====
-function renderCards(items) {
-    const grid = document.getElementById('gamesGrid');
-    const noResults = document.getElementById('noResults');
-    grid.innerHTML = '';
-    if (!items.length) {
-        if (noResults) noResults.style.display = 'block';
-        return;
-    }
-    if (noResults) noResults.style.display = 'none';
-
-    items.forEach((item, i) => {
-        const card = document.createElement('button');
-        card.className = 'game-card fade-in';
-        card.style.animationDelay = `${i * 0.03}s`;
-        card.style.backgroundColor = hashColor(item.displayName);
-
-        const star = document.createElement('button');
-        star.className = 'card-star' + (isFav(item.filename) ? ' active' : '');
-        star.textContent = '⭐';
-        star.title = 'Favorite';
-        star.addEventListener('click', e => {
-            e.stopPropagation();
-            toggleFav(item.filename);
-            star.classList.toggle('active');
-        });
-
-        const label = document.createElement('div');
-        label.className = 'card-name';
-        label.textContent = item.displayName;
-
-        card.appendChild(star);
-        card.appendChild(label);
-        card.addEventListener('click', () => openGame(item));
-        grid.appendChild(card);
-        loadThumbnail(item.displayName, card);
-    });
-}
-
-function hashColor(name) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i) | 0;
-    return `hsl(${Math.abs(h) % 360}, 55%, 38%)`;
-}
-
-function loadThumbnail(displayName, card) {
-    const exts = ['png', 'jpg', 'jpeg', 'webp'];
-    let i = 0;
-    function next() {
-        if (i >= exts.length) return;
-        const img = new Image();
-        img.onload = () => {
-            card.style.backgroundImage = `url("assets/thumbnails/${displayName}.${exts[i]}")`;
-            card.style.backgroundSize = 'cover';
-            card.style.backgroundPosition = 'center';
-            card.classList.add('has-thumbnail');
-        };
-        img.onerror = () => { i++; next(); };
-        img.src = `assets/thumbnails/${displayName}.${exts[i]}`;
-    }
-    next();
-}
-
-function updateCounter() {
-    const el = document.getElementById('gameCounter');
-    if (el) el.textContent = `${allGames.length} Game${allGames.length !== 1 ? 's' : ''}`;
-}
-
-// ===== OPEN GAME IN NEW TAB =====
+/* ──────────────────────────────────────────────
+   OPEN / CLOSE GAME
+   ────────────────────────────────────────────── */
 function openGame(game) {
-    if (!game || !game.filename) return;
-    const src = (game.basePath || 'assets/') + game.filename;
-    window.open(src, '_blank');
+  currentGame = game;
+  overlayName.textContent = game.name;
+  gameFrame.src = getGameURL(game);
+  gameOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  syncOverlayFavBtn();
+  showToast(`// LOADING ${game.name}...`, 1800);
 }
 
-// ===== FAVORITES =====
-function isFav(filename) {
-    try { return JSON.parse(localStorage.getItem('fav_' + filename) || 'false'); } catch { return false; }
-}
-function toggleFav(filename) {
-    localStorage.setItem('fav_' + filename, JSON.stringify(!isFav(filename)));
+function closeGame() {
+  gameOverlay.classList.add('hidden');
+  gameFrame.src = '';
+  currentGame = null;
+  document.body.style.overflow = '';
 }
 
-function setupFavoritesToggle() {
-    const btn = document.getElementById('favFilterBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-        showingFavorites = !showingFavorites;
-        btn.classList.toggle('active', showingFavorites);
-        btn.textContent = showingFavorites ? '🎮 All Games' : '⭐ Favorites';
-        const list = showingFavorites ? allGames.filter(g => isFav(g.filename)) : allGames;
-        renderCards(list);
+overlayClose.addEventListener('click', closeGame);
+
+overlayFavBtn.addEventListener('click', () => {
+  if (currentGame) toggleFav(currentGame.id);
+});
+
+overlayFsBtn.addEventListener('click', () => {
+  if (gameFrame.requestFullscreen)       gameFrame.requestFullscreen();
+  else if (gameFrame.webkitRequestFullscreen) gameFrame.webkitRequestFullscreen();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !gameOverlay.classList.contains('hidden')) closeGame();
+});
+
+/* ──────────────────────────────────────────────
+   SEARCH & FILTER
+   ────────────────────────────────────────────── */
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value.trim().toLowerCase();
+  renderGrid();
+});
+
+clearSearch.addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  searchInput.focus();
+  renderGrid();
+});
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderGrid();
+  });
+});
+
+function getFilteredGames() {
+  let list = [...GAME_REGISTRY];
+  if (activeFilter === 'favorites') list = list.filter(g => isFav(g.id));
+  if (searchQuery) list = list.filter(g =>
+    g.name.toLowerCase().includes(searchQuery)
+  );
+  return list;
+}
+
+/* ──────────────────────────────────────────────
+   RENDER GRID
+   ────────────────────────────────────────────── */
+function renderGrid() {
+  const list = getFilteredGames();
+  grid.innerHTML = '';
+
+  if (list.length === 0) {
+    noResults.classList.remove('hidden');
+  } else {
+    noResults.classList.add('hidden');
+    list.forEach((game, i) => {
+      grid.appendChild(buildCard(game, i));
     });
+  }
+
+  const totalFavs = favorites.length;
+  gameCount.textContent = `${list.length} GAME${list.length !== 1 ? 'S' : ''} LOADED`;
+  favCount.textContent  = `${totalFavs} FAVORITE${totalFavs !== 1 ? 'S' : ''}`;
 }
 
-// ===== TAB CLOAK =====
-const CLOAKS = {
-    'none':             { title: 'Cool Science Games', favicon: '' },
-    'schoology':        { title: 'Home | Schoology',   favicon: 'https://asset-cdn.schoology.com/sites/all/themes/schoology_theme/favicon.ico' },
-    'google-classroom': { title: 'Home',               favicon: 'https://ssl.gstatic.com/classroom/favicon.png' },
-    'zoom':             { title: 'Zoom',               favicon: 'https://zoom.us/favicon.ico' },
-    'google':           { title: 'Google',             favicon: 'https://www.google.com/favicon.ico' },
-    'youtube':          { title: 'YouTube',            favicon: 'https://www.youtube.com/favicon.ico' }
-};
+/* ──────────────────────────────────────────────
+   BUILD CARD
+   ────────────────────────────────────────────── */
+function buildCard(game, index) {
+  const card = document.createElement('div');
+  card.className = 'game-card entering';
+  card.style.animationDelay = `${index * 0.04}s`;
 
-function setupCloakMenu() {
-    const btn  = document.getElementById('cloakBtn');
-    const menu = document.getElementById('cloakMenu');
-    if (!btn || !menu) return;
+  const typeLabel = game.multi ? 'MULTI-FILE' : 'SINGLE FILE';
+  const favActive = isFav(game.id);
 
-    btn.addEventListener('click', e => {
-        e.stopPropagation();
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    });
-    document.addEventListener('click', () => { menu.style.display = 'none'; });
+  card.innerHTML = `
+    <button
+      class="fav-btn${favActive ? ' active' : ''}"
+      data-id="${game.id}"
+      title="${favActive ? 'Unfavorite' : 'Favorite'}"
+    >★</button>
+    <div class="card-icon">${game.icon}</div>
+    <div class="card-name">${game.name}</div>
+    <div class="card-type">${typeLabel}</div>
+  `;
 
-    menu.querySelectorAll('.cloak-opt').forEach(opt => {
-        opt.addEventListener('click', e => {
-            e.stopPropagation();
-            applyCloak(opt.dataset.cloak);
-            menu.querySelectorAll('.cloak-opt').forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-            menu.style.display = 'none';
-        });
-    });
+  card.addEventListener('click', () => openGame(game));
+
+  card.querySelector('.fav-btn').addEventListener('click', e => {
+    toggleFav(game.id, e);
+  });
+
+  return card;
 }
 
-function applyCloak(key) {
-    const d = CLOAKS[key] || CLOAKS['none'];
-    document.title = d.title;
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-    link.href = d.favicon;
-    localStorage.setItem('selectedCloak', key);
-}
-
-function loadSavedCloak() {
-    const saved = localStorage.getItem('selectedCloak') || 'none';
-    applyCloak(saved);
-    document.querySelectorAll('.cloak-opt').forEach(o => {
-        if (o.dataset.cloak === saved) o.classList.add('active');
-    });
-}
+/* ──────────────────────────────────────────────
+   INIT
+   ────────────────────────────────────────────── */
+renderGrid();
