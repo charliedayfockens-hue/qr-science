@@ -1,0 +1,13 @@
+{
+  "name": "coolsciencegames-proxy",
+  "version": "1.0.0",
+  "description": "Ultraviolet web proxy server for Cool Science Games",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "@titaniumnetwork-dev/ultraviolet": "^2.0.0",
+    "@tomphttp/bare-server-node": "^2.0.0",
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #fff;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+        p {
+            opacity: 0.45;
+            margin-bottom: 36px;
+            font-size: 0.95rem;
+        }
+        .search-wrap {
+            display: flex;
+            width: min(600px, 90vw);
+            background: rgba(255,255,255,0.07);
+            border: 1.5px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .search-wrap:focus-within {
+            border-color: rgba(120,160,255,0.7);
+        }
+        input {
+            flex: 1;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+        input::placeholder { opacity: 0.4; }
+        button {
+            padding: 14px 24px;
+            background: rgba(120,160,255,0.2);
+            border: none;
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: rgba(120,160,255,0.4); }
+        #status {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            opacity: 0.45;
+            min-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔒 Proxy</h1>
+    <p>Enter a URL or search Google</p>
+
+    <div class="search-wrap">
+        <input id="bar" type="text" placeholder="google.com or search..." autofocus>
+        <button onclick="go()">Go</button>
+    </div>
+    <div id="status"></div>
+
+    <script src="/uv/uv.bundle.js"></script>
+    <script src="/uv/uv.config.js"></script>
+    <script>
+        const status = document.getElementById('status');
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/uv/uv.sw.js', {
+                scope: __uv$config.prefix
+            }).then(() => {
+                status.textContent = 'Ready';
+            }).catch(e => {
+                status.textContent = 'Service worker error: ' + e.message;
+            });
+        }
+
+        document.getElementById('bar').addEventListener('keydown', e => {
+            if (e.key === 'Enter') go();
+        });
+
+        function go() {
+            let input = document.getElementById('bar').value.trim();
+            if (!input) return;
+            let url;
+            if (/^https?:\/\//i.test(input)) {
+                url = input;
+            } else if (/^[\w-]+(\.[a-zA-Z]{2,})(\/.*)?$/.test(input) && !input.includes(' ')) {
+                url = 'https://' + input;
+            } else {
+                url = 'https://www.google.com/search?q=' + encodeURIComponent(input);
+            }
+            location.href = __uv$config.prefix + __uv$config.encodeUrl(url);
+        }
+    </script>
+</body>
+</html>
