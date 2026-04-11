@@ -217,11 +217,45 @@ const overlayTitle = document.getElementById('overlay-title');
 const closeBtn     = document.getElementById('overlay-close');
 const fsBtn        = document.getElementById('overlay-fullscreen');
 
-function launchGame(g) {
+// For multi-file games: check the folder via API to find the real entry HTML.
+// Prefers index.html, then falls back to any other .html file found.
+async function resolveMultiEntry(name) {
+  const cacheKey = `qrs-entry-${name}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const enc = encodeURIComponent(name);
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}/${enc}`
+    );
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const files = await res.json();
+
+    const htmlFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.html'));
+    const entry = htmlFiles.find(f => f.name.toLowerCase() === 'index.html') || htmlFiles[0];
+    const entryName = entry ? entry.name : 'index.html';
+
+    sessionStorage.setItem(cacheKey, entryName);
+    return entryName;
+  } catch (err) {
+    console.warn(`Could not resolve entry for "${name}":`, err);
+    return 'index.html'; // best-guess fallback
+  }
+}
+
+async function launchGame(g) {
   overlayTitle.textContent = g.name.toUpperCase();
-  frame.src = gamePath(g);
   overlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  frame.src = ''; // clear while resolving
+
+  if (g.isMulti) {
+    const entryFile = await resolveMultiEntry(g.name);
+    frame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}/${entryFile}`;
+  } else {
+    frame.src = gamePath(g);
+  }
 }
 
 function closeGame() {
