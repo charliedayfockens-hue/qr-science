@@ -113,13 +113,29 @@ header {
 .header-left { display: flex; flex-direction: column; gap: 2px; }
 
 .logo {
-  font-family: var(--font-display);
-  font-size: 2.4rem;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  text-shadow: var(--glow-strong);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
   line-height: 1;
-  animation: logo-flicker 8s infinite;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  user-select: all;
+}
+.logo::before {
+  content: '🔒';
+  font-size: 11px;
+  flex-shrink: 0;
 }
 
 .bracket { color: var(--accent2); }
@@ -132,11 +148,6 @@ header {
   99%                  { opacity: 0.6; }
 }
 
-.tagline {
-  font-size: 11px;
-  color: var(--text-dim);
-  letter-spacing: 0.12em;
-}
 
 .header-right {
   display: flex;
@@ -344,17 +355,9 @@ header {
 .card-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-left: 6px;
 }
-
-.card-type {
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.card-type.multi { color: var(--accent2); }
 
 .fav-btn {
   background: none;
