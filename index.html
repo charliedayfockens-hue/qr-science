@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR-SCIENCE // ARCADE</title>
+  <title>Google Drive</title>
+  <link rel="icon" href="https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" type="image/png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,8 +13,7 @@
 
   <header>
     <div class="header-left">
-      <div class="logo"><span class="bracket">[</span>QR<span class="dash">-</span>SCIENCE<span class="bracket">]</span></div>
-      <div class="tagline">// ARCADE TERMINAL v1.0</div>
+      <div class="logo" id="site-logo"></div>
     </div>
     <div class="header-right">
       <div class="clock-block">
@@ -22,6 +22,7 @@
         <span class="clock-label">DATE</span>
         <span id="date-display">0000-00-00</span>
       </div>
+      <button id="request-btn" class="pill-btn" title="Request a game">+ REQUEST GAME</button>
       <button id="theme-toggle" class="pill-btn" title="Toggle dark/light mode">
         <span id="theme-icon">◑</span> <span id="theme-label">LIGHT</span>
       </button>
