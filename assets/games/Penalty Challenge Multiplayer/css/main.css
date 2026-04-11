@@ -1,0 +1,104 @@
+root { 
+    display: block;
+}
+
+body{
+    background-color: #f00;
+    background-repeat: repeat-x;
+    background-position: top;   
+}
+
+*, *:before, *:after {
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+     
+input, input:before, input:after {
+    -webkit-user-select: initial;
+    -khtml-user-select: initial;
+    -moz-user-select: initial;
+    -ms-user-select: initial;
+    user-select: initial;
+}
+
+::selection { background: transparent;color:inherit; }
+::-moz-selection { background: transparent;color:inherit; }
+
+#canvas{
+    position: fixed;
+ 
+}
+
+canvas {
+    image-rendering:-o-crisp-edges;
+    image-rendering:-webkit-optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+	-ms-touch-action: none;
+}
+
+.ani_hack{
+    -webkit-perspective: 1000;
+    -webkit-backface-visibility: hidden;
+    
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent; /* mobile webkit */
+}
+
+#div_display_id{
+    width:100%;
+    position: fixed;
+    left: 50%; 
+    bottom: 15px; 
+    -ms-transform: translate(-50%, 0%);
+    -moz-transform: translate(-50%, 0%);
+    -webkit-transform: translate(-50%, 0%);
+    -o-transform: translate(-50%, 0%);
+    transform: translate(-50%, 0%);
+    width:768px;
+    height:90px;
+    display:none;
+}
+
+
+/***************FONTS*******************/
+
+.check-fonts{
+        position: fixed;
+        opacity:0;
+}
+
+.check-font-1{
+        font-family: 'Open Sans';
+}
+
+.check-font-2{
+        font-family: 'Roboto Condensed';
+}
+
+@font-face {
+    font-family: 'Roboto Condensed';
+    src: url('subset-RobotoCondensed-Regular.woff2') format('woff2'),
+        url('subset-RobotoCondensed-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    src: url('subset-OpenSans-SemiBold.woff2') format('woff2'),
+        url('subset-OpenSans-SemiBold.woff') format('woff'),
+        url('subset-OpenSans-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
