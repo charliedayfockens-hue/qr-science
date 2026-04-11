@@ -7,10 +7,8 @@ const GAMES_PATH   = 'assets/games';
 const API_URL      = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
 const REQUEST_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
 
-// ── CLOAKING ──
-// Show the real site URL inside the logo bar
-const logoEl = document.getElementById('site-logo');
-logoEl.textContent = window.location.host + window.location.pathname;
+// ── LOGO ──
+document.getElementById('site-logo').textContent = 'QR-SCIENCE';
 
 // ── STATE ──
 let ALL_GAMES    = [];  // [{name, isMulti}]
