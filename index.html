@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR-SCIENCE // ARCADE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="scanlines" aria-hidden="true"></div>
+  <div id="noise" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-left">
+      <div class="logo"><span class="bracket">[</span>QR<span class="dash">-</span>SCIENCE<span class="bracket">]</span></div>
+      <div class="tagline">// ARCADE TERMINAL v1.0</div>
+    </div>
+    <div class="header-right">
+      <div class="clock-block">
+        <span class="clock-label">TIME</span>
+        <span id="time-display">00:00:00</span>
+        <span class="clock-label">DATE</span>
+        <span id="date-display">0000-00-00</span>
+      </div>
+      <button id="theme-toggle" class="pill-btn" title="Toggle dark/light mode">
+        <span id="theme-icon">◑</span> <span id="theme-label">LIGHT</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="search-bar-container">
+    <div class="search-wrapper">
+      <span class="search-prefix">&gt;_</span>
+      <input
+        type="text"
+        id="search-input"
+        placeholder="SEARCH GAMES..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span id="search-count" class="search-count">0 RESULTS</span>
+    </div>
+    <div class="filter-tabs">
+      <button class="tab-btn active" data-filter="all">ALL GAMES</button>
+      <button class="tab-btn" data-filter="favorites">★ FAVORITES</button>
+    </div>
+  </div>
+
+  <main id="game-grid" class="game-grid"></main>
+
+  <div id="no-results" class="no-results hidden">
+    <span class="nr-prefix">&gt;&gt;</span>
+    <span class="nr-text">NO GAMES FOUND.<span class="blink">_</span></span>
+  </div>
+
+  <!-- Game overlay -->
+  <div id="game-overlay" class="game-overlay hidden" role="dialog" aria-modal="true">
+    <div class="overlay-header">
+      <div class="overlay-title-block">
+        <span class="overlay-prefix">&gt;&gt;</span>
+        <span id="overlay-title">GAME</span>
+      </div>
+      <div class="overlay-controls">
+        <button id="overlay-fullscreen" class="pill-btn" title="Fullscreen">⛶ FULLSCREEN</button>
+        <button id="overlay-close" class="pill-btn close-btn" title="Close (Esc)">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <iframe id="game-frame" src="" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
