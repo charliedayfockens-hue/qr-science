@@ -8,67 +8,77 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="scanlines" aria-hidden="true"></div>
-  <div id="noise" aria-hidden="true"></div>
 
+  <!-- TOP BAR -->
   <header>
-    <div class="header-left">
-      <div class="logo" id="site-logo"></div>
-    </div>
+    <div class="logo" id="site-logo">QR-SCIENCE</div>
     <div class="header-right">
       <div class="clock-block">
-        <span class="clock-label">TIME</span>
         <span id="time-display">00:00:00</span>
-        <span class="clock-label">DATE</span>
+        <span class="clock-sep">//</span>
         <span id="date-display">0000-00-00</span>
       </div>
-      <button id="request-btn" class="pill-btn" title="Request a game">+ REQUEST GAME</button>
-      <button id="theme-toggle" class="pill-btn" title="Toggle dark/light mode">
+      <button id="request-btn" class="pill-btn">+ REQUEST GAME</button>
+      <button id="theme-toggle" class="pill-btn">
         <span id="theme-icon">◑</span> <span id="theme-label">LIGHT</span>
       </button>
     </div>
   </header>
 
-  <div class="search-bar-container">
-    <div class="search-wrapper">
-      <span class="search-prefix">&gt;_</span>
-      <input
-        type="text"
-        id="search-input"
-        placeholder="SEARCH GAMES..."
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <span id="search-count" class="search-count">0 RESULTS</span>
-    </div>
-    <div class="filter-tabs">
-      <button class="tab-btn active" data-filter="all">ALL GAMES</button>
-      <button class="tab-btn" data-filter="favorites">★ FAVORITES</button>
-    </div>
-  </div>
+  <!-- MAIN LAYOUT -->
+  <div class="layout">
 
-  <main id="game-grid" class="game-grid"></main>
-
-  <div id="no-results" class="no-results hidden">
-    <span class="nr-prefix">&gt;&gt;</span>
-    <span class="nr-text">NO GAMES FOUND.<span class="blink">_</span></span>
-  </div>
-
-  <!-- Game overlay -->
-  <div id="game-overlay" class="game-overlay hidden" role="dialog" aria-modal="true">
-    <div class="overlay-header">
-      <div class="overlay-title-block">
-        <span class="overlay-prefix">&gt;&gt;</span>
-        <span id="overlay-title">GAME</span>
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="search-wrap">
+          <span class="search-prefix">&gt;_</span>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="SEARCH..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="all">ALL</button>
+          <button class="tab-btn" data-filter="favorites">★ FAVS</button>
+        </div>
+        <div class="game-count" id="game-count">— GAMES</div>
       </div>
-      <div class="overlay-controls">
-        <button id="overlay-fullscreen" class="pill-btn" title="Fullscreen">⛶ FULLSCREEN</button>
-        <button id="overlay-close" class="pill-btn close-btn" title="Close (Esc)">✕ CLOSE</button>
+
+      <div class="game-list" id="game-list">
+        <div class="list-loading" id="list-loading">
+          LOADING<span class="blink">_</span>
+        </div>
       </div>
-    </div>
-    <div class="frame-wrap">
-      <iframe id="game-frame" src="" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
-    </div>
+    </aside>
+
+    <!-- RIGHT DISPLAY AREA -->
+    <main class="display-area">
+      <div class="display-header">
+        <span class="display-label" id="display-label">LOOKING FOR GAME</span>
+        <div class="display-controls" id="display-controls">
+          <button id="btn-fullscreen" class="pill-btn">⛶ FULLSCREEN</button>
+          <button id="btn-exit" class="pill-btn exit-btn">✕ EXIT</button>
+        </div>
+      </div>
+
+      <div class="display-box" id="display-box">
+        <div class="idle-screen" id="idle-screen">
+          <span class="idle-text">LOOKING FOR GAME<span class="blink">_</span></span>
+        </div>
+        <iframe
+          id="game-frame"
+          src=""
+          frameborder="0"
+          allowfullscreen
+          allow="autoplay; fullscreen"
+        ></iframe>
+      </div>
+    </main>
+
   </div>
 
   <script src="script.js"></script>

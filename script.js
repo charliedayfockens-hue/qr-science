@@ -2,33 +2,22 @@
    QR-SCIENCE ARCADE — SCRIPT
    ============================================= */
 
-const REPO         = 'charliedayfockens-hue/qr-science';
-const GAMES_PATH   = 'assets/games';
-const API_URL      = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
-const REQUEST_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
-
-// ── LOGO ──
-document.getElementById('site-logo').textContent = 'QR-SCIENCE';
+const REPO        = 'charliedayfockens-hue/qr-science';
+const GAMES_PATH  = 'assets/games';
+const API_URL     = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
+const REQUEST_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
 
 // ── STATE ──
-let ALL_GAMES    = [];  // [{name, isMulti}]
+let ALL_GAMES    = [];   // [{name, isMulti}]
 let favorites    = JSON.parse(localStorage.getItem('qrs-favs') || '[]');
 let activeFilter = 'all';
 let searchQuery  = '';
+let activeGame   = null; // currently loaded game name
 
 // ── UTILS ──
-function gamePath({ name, isMulti }) {
-  const enc = encodeURIComponent(name);
-  return isMulti
-    ? `${GAMES_PATH}/${enc}/index.html`
-    : `${GAMES_PATH}/${enc}.html`;
-}
-
 function isFav(name) { return favorites.includes(name); }
 
-function saveFavs() {
-  localStorage.setItem('qrs-favs', JSON.stringify(favorites));
-}
+function saveFavs() { localStorage.setItem('qrs-favs', JSON.stringify(favorites)); }
 
 function toggleFav(name, e) {
   e.stopPropagation();
@@ -36,74 +25,57 @@ function toggleFav(name, e) {
   if (idx === -1) favorites.push(name);
   else favorites.splice(idx, 1);
   saveFavs();
-  renderGames();
+  renderList();
 }
 
-// ── FETCH GAMES FROM GITHUB API ──
+function escHtml(str) {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── FETCH GAMES ──
 async function fetchGames() {
-  // Use sessionStorage to avoid hammering the API on every visit
   const cached = sessionStorage.getItem('qrs-games');
   if (cached) {
     ALL_GAMES = JSON.parse(cached);
-    renderGames();
+    renderList();
     return;
   }
 
-  showLoading(true);
   try {
     const res = await fetch(API_URL);
-    if (!res.ok) throw new Error(`API error ${res.status}`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
     const items = await res.json();
 
     ALL_GAMES = items
-      .filter(item => item.type === 'dir' || (item.type === 'file' && item.name.endsWith('.html')))
-      .map(item => ({
-        name:    item.type === 'dir' ? item.name : item.name.replace(/\.html$/, ''),
-        isMulti: item.type === 'dir'
+      .filter(i => i.type === 'dir' || (i.type === 'file' && i.name.endsWith('.html')))
+      .map(i => ({
+        name:    i.type === 'dir' ? i.name : i.name.replace(/\.html$/, ''),
+        isMulti: i.type === 'dir'
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     sessionStorage.setItem('qrs-games', JSON.stringify(ALL_GAMES));
   } catch (err) {
     console.error('Failed to load games:', err);
-    showError();
-  } finally {
-    showLoading(false);
+    document.getElementById('list-loading').innerHTML =
+      '<span style="color:#ff3333">FAILED TO LOAD</span>';
+    return;
   }
 
-  renderGames();
-}
-
-function showLoading(on) {
-  let el = document.getElementById('loading-msg');
-  if (on) {
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'loading-msg';
-      el.className = 'no-results';
-      el.innerHTML = '<span class="nr-prefix">&gt;&gt;</span><span class="nr-text">LOADING GAMES<span class="blink">_</span></span>';
-      document.getElementById('game-grid').after(el);
-    }
-    el.classList.remove('hidden');
-  } else {
-    if (el) el.classList.add('hidden');
-  }
-}
-
-function showError() {
-  const el = document.getElementById('loading-msg');
-  if (el) el.innerHTML = '<span class="nr-prefix" style="color:#ff2a2a">&gt;&gt;</span><span class="nr-text">FAILED TO LOAD GAMES. CHECK CONNECTION.</span>';
+  renderList();
 }
 
 // ── CLOCK ──
 function updateClock() {
-  const now = new Date();
-  const hh  = String(now.getHours()).padStart(2, '0');
-  const mm  = String(now.getMinutes()).padStart(2, '0');
-  const ss  = String(now.getSeconds()).padStart(2, '0');
-  const yyyy = now.getFullYear();
-  const mo  = String(now.getMonth() + 1).padStart(2, '0');
-  const dd  = String(now.getDate()).padStart(2, '0');
+  const n  = new Date();
+  const hh = String(n.getHours()).padStart(2,'0');
+  const mm = String(n.getMinutes()).padStart(2,'0');
+  const ss = String(n.getSeconds()).padStart(2,'0');
+  const yyyy = n.getFullYear();
+  const mo = String(n.getMonth()+1).padStart(2,'0');
+  const dd = String(n.getDate()).padStart(2,'0');
   document.getElementById('time-display').textContent = `${hh}:${mm}:${ss}`;
   document.getElementById('date-display').textContent = `${yyyy}-${mo}-${dd}`;
 }
@@ -111,43 +83,30 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ── THEME ──
-const root       = document.documentElement;
-const themeBtn   = document.getElementById('theme-toggle');
-const themeIcon  = document.getElementById('theme-icon');
-const themeLabel = document.getElementById('theme-label');
-
 let currentTheme = localStorage.getItem('qrs-theme') || 'dark';
 applyTheme(currentTheme);
 
-themeBtn.addEventListener('click', () => {
+document.getElementById('theme-toggle').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(currentTheme);
   localStorage.setItem('qrs-theme', currentTheme);
 });
 
 function applyTheme(t) {
-  root.setAttribute('data-theme', t);
-  if (t === 'dark') {
-    themeIcon.textContent  = '◑';
-    themeLabel.textContent = 'LIGHT';
-  } else {
-    themeIcon.textContent  = '○';
-    themeLabel.textContent = 'DARK';
-  }
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-icon').textContent  = t === 'dark' ? '◑' : '○';
+  document.getElementById('theme-label').textContent = t === 'dark' ? 'LIGHT' : 'DARK';
 }
 
-// ── REQUEST GAMES BUTTON ──
+// ── REQUEST BUTTON ──
 document.getElementById('request-btn').addEventListener('click', () => {
   window.open(REQUEST_URL, '_blank', 'noopener,noreferrer');
 });
 
 // ── SEARCH ──
-const searchInput = document.getElementById('search-input');
-const searchCount = document.getElementById('search-count');
-
-searchInput.addEventListener('input', () => {
-  searchQuery = searchInput.value.trim().toLowerCase();
-  renderGames();
+document.getElementById('search-input').addEventListener('input', function () {
+  searchQuery = this.value.trim().toLowerCase();
+  renderList();
 });
 
 // ── FILTER TABS ──
@@ -156,129 +115,109 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeFilter = btn.dataset.filter;
-    renderGames();
+    renderList();
   });
 });
 
-// ── RENDER ──
-const grid      = document.getElementById('game-grid');
-const noResults = document.getElementById('no-results');
+// ── RENDER LIST ──
+const listEl   = document.getElementById('game-list');
+const countEl  = document.getElementById('game-count');
 
-function renderGames() {
-  const list = ALL_GAMES.filter(g => {
+function renderList() {
+  const filtered = ALL_GAMES.filter(g => {
     if (activeFilter === 'favorites' && !isFav(g.name)) return false;
     if (searchQuery && !g.name.toLowerCase().includes(searchQuery)) return false;
     return true;
   });
 
-  searchCount.textContent = `${list.length} GAME${list.length !== 1 ? 'S' : ''}`;
-  grid.innerHTML = '';
+  countEl.textContent = `${filtered.length} GAME${filtered.length !== 1 ? 'S' : ''}`;
+  listEl.innerHTML = '';
 
-  if (list.length === 0) {
-    noResults.classList.remove('hidden');
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="list-empty">NO GAMES FOUND<span class="blink">_</span></div>`;
     return;
   }
-  noResults.classList.add('hidden');
 
   const frag = document.createDocumentFragment();
-  list.forEach((g, i) => {
-    const card  = document.createElement('div');
-    card.className = 'game-card';
-    card.style.animationDelay = `${Math.min(i * 6, 250)}ms`;
+  filtered.forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'game-item' + (activeGame === g.name ? ' active' : '');
+    item.dataset.name = g.name;
+
     const faved = isFav(g.name);
+    item.innerHTML = `
+      <span class="item-name">${escHtml(g.name)}</span>
+      <button class="item-fav${faved ? ' is-fav' : ''}" title="${faved ? 'Unfavorite' : 'Favorite'}">${faved ? '★' : '☆'}</button>`;
 
-    card.innerHTML = `
-      <div class="card-name">${escHtml(g.name)}</div>
-      <div class="card-meta">
-        <button class="fav-btn${faved ? ' is-fav' : ''}" title="${faved ? 'Unfavorite' : 'Favorite'}">
-          ${faved ? '★' : '☆'}
-        </button>
-      </div>`;
-
-    card.querySelector('.fav-btn').addEventListener('click', e => toggleFav(g.name, e));
-    card.addEventListener('click', () => launchGame(g));
-    frag.appendChild(card);
+    item.querySelector('.item-fav').addEventListener('click', e => toggleFav(g.name, e));
+    item.addEventListener('click', () => launchGame(g));
+    frag.appendChild(item);
   });
-  grid.appendChild(frag);
-}
-
-function escHtml(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  listEl.appendChild(frag);
 }
 
 // ── GAME LAUNCHER ──
-const overlay      = document.getElementById('game-overlay');
-const frame        = document.getElementById('game-frame');
-const overlayTitle = document.getElementById('overlay-title');
-const closeBtn     = document.getElementById('overlay-close');
-const fsBtn        = document.getElementById('overlay-fullscreen');
+const idleScreen    = document.getElementById('idle-screen');
+const gameFrame     = document.getElementById('game-frame');
+const displayLabel  = document.getElementById('display-label');
+const displayCtrls  = document.getElementById('display-controls');
 
-// For multi-file games: check the folder via API to find the real entry HTML.
-// Prefers index.html, then falls back to any other .html file found.
+// Resolve entry file for multi-file games
 async function resolveMultiEntry(name) {
-  const cacheKey = `qrs-entry-${name}`;
-  const cached = sessionStorage.getItem(cacheKey);
+  const key    = `qrs-entry-${name}`;
+  const cached = sessionStorage.getItem(key);
   if (cached) return cached;
 
   try {
-    const enc = encodeURIComponent(name);
-    const res = await fetch(
-      `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}/${enc}`
-    );
-    if (!res.ok) throw new Error(`API ${res.status}`);
+    const res   = await fetch(`https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}/${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error();
     const files = await res.json();
-
-    const htmlFiles = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.html'));
-    const entry = htmlFiles.find(f => f.name.toLowerCase() === 'index.html') || htmlFiles[0];
-    const entryName = entry ? entry.name : 'index.html';
-
-    sessionStorage.setItem(cacheKey, entryName);
-    return entryName;
-  } catch (err) {
-    console.warn(`Could not resolve entry for "${name}":`, err);
-    return 'index.html'; // best-guess fallback
+    const htmls = files.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.html'));
+    const entry = htmls.find(f => f.name.toLowerCase() === 'index.html') || htmls[0];
+    const name_ = entry ? entry.name : 'index.html';
+    sessionStorage.setItem(key, name_);
+    return name_;
+  } catch {
+    return 'index.html';
   }
 }
 
 async function launchGame(g) {
-  overlayTitle.textContent = g.name.toUpperCase();
-  overlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  frame.src = ''; // clear while resolving
+  activeGame = g.name;
+  renderList(); // highlight active item
+
+  displayLabel.textContent = g.name.toUpperCase();
+  displayCtrls.classList.add('visible');
+
+  // Show iframe, hide idle
+  idleScreen.classList.add('hidden');
+  gameFrame.src = '';
 
   if (g.isMulti) {
-    const entryFile = await resolveMultiEntry(g.name);
-    frame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}/${entryFile}`;
+    const entry = await resolveMultiEntry(g.name);
+    gameFrame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}/${entry}`;
   } else {
-    frame.src = gamePath(g);
+    gameFrame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}.html`;
   }
 }
 
-function closeGame() {
-  overlay.classList.add('hidden');
-  frame.src = '';
-  document.body.style.overflow = '';
+function exitGame() {
+  activeGame = null;
+  gameFrame.src = '';
+  idleScreen.classList.remove('hidden');
+  displayLabel.textContent = 'LOOKING FOR GAME';
+  displayCtrls.classList.remove('visible');
+  renderList(); // clear active highlight
 }
 
-closeBtn.addEventListener('click', closeGame);
+// ── DISPLAY CONTROLS ──
+document.getElementById('btn-exit').addEventListener('click', exitGame);
 
-fsBtn.addEventListener('click', () => {
-  const el = frame;
+document.getElementById('btn-fullscreen').addEventListener('click', () => {
+  const el = gameFrame;
   if (el.requestFullscreen)            el.requestFullscreen();
   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeGame();
-});
-
-overlay.addEventListener('click', e => {
-  if (e.target === overlay) closeGame();
 });
 
 // ── INIT ──
