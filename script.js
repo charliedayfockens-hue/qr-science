@@ -6,7 +6,7 @@ const REPO         = 'charliedayfockens-hue/qr-science';
 const GAMES_PATH   = 'assets/games';
 const API_URL      = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
 const REQUEST_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
-const STARBOARD_URL = 'https://change-me.example.com'; // ← change this link
+const STARBOARD_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScS5LEUKXY8tD7Bmd6ggZE6WXYcSr0EKk8RJNUd2s1wlCnEjw/viewform?usp=publish-editor'; // ← change this link
 
 // ── STATE ──
 let ALL_GAMES    = [];   // [{name, isMulti}]
