@@ -2,10 +2,11 @@
    QR-SCIENCE ARCADE — SCRIPT
    ============================================= */
 
-const REPO        = 'charliedayfockens-hue/qr-science';
-const GAMES_PATH  = 'assets/games';
-const API_URL     = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
-const REQUEST_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
+const REPO         = 'charliedayfockens-hue/qr-science';
+const GAMES_PATH   = 'assets/games';
+const API_URL      = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
+const REQUEST_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
+const STARBOARD_URL = 'https://change-me.example.com'; // ← change this link
 
 // ── STATE ──
 let ALL_GAMES    = [];   // [{name, isMulti}]
@@ -101,6 +102,10 @@ function applyTheme(t) {
 // ── REQUEST BUTTON ──
 document.getElementById('request-btn').addEventListener('click', () => {
   window.open(REQUEST_URL, '_blank', 'noopener,noreferrer');
+});
+
+document.getElementById('starboard-btn').addEventListener('click', () => {
+  window.open(STARBOARD_URL, '_blank', 'noopener,noreferrer');
 });
 
 // ── SEARCH ──
