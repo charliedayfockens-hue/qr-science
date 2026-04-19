@@ -270,69 +270,18 @@ const gameFrame     = document.getElementById('game-frame');
 const displayLabel  = document.getElementById('display-label');
 const displayCtrls  = document.getElementById('display-controls');
 
-// Recursively search a directory (via GitHub API url) for the best HTML entry point.
-// Returns a relative path from the game root, e.g. "subfolder/index.html".
-async function findHtmlInDir(apiUrl, relPath, depth) {
-  if (depth > 3) return null; // safety cap
-  try {
-    const res = await fetch(apiUrl);
-    if (!res.ok) return null;
-    const items = await res.json();
-    if (!Array.isArray(items)) return null;
 
-    const htmlFiles = items.filter(i => i.type === 'file' && i.name.toLowerCase().endsWith('.html'));
-    const dirs      = items.filter(i => i.type === 'dir');
-
-    // Prefer index.html at this level first
-    const index = htmlFiles.find(f => f.name.toLowerCase() === 'index.html');
-    if (index) return relPath ? `${relPath}/${index.name}` : index.name;
-
-    // Any other html file at this level
-    if (htmlFiles.length) {
-      const f = htmlFiles[0];
-      return relPath ? `${relPath}/${f.name}` : f.name;
-    }
-
-    // Recurse into subdirectories (in parallel)
-    const results = await Promise.all(
-      dirs.map(d => findHtmlInDir(d.url, relPath ? `${relPath}/${d.name}` : d.name, depth + 1))
-    );
-    return results.find(r => r !== null) || null;
-  } catch {
-    return null;
-  }
-}
-
-// Resolve entry file for multi-file games, searching recursively if needed.
-async function resolveMultiEntry(name) {
-  const key    = `qrs-entry-${name}`;
-  const cached = sessionStorage.getItem(key);
-  if (cached) return cached;
-
-  const rootUrl = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}/${encodeURIComponent(name)}`;
-  const entry   = await findHtmlInDir(rootUrl, '', 0);
-  const result  = entry || 'index.html';
-  sessionStorage.setItem(key, result);
-  return result;
-}
-
-async function launchGame(g) {
+function launchGame(g) {
   activeGame = g.name;
-  renderList(); // highlight active item
+  renderList();
 
   displayLabel.textContent = g.name.toUpperCase();
   displayCtrls.classList.add('visible');
-
-  // Show iframe, hide idle
   idleScreen.classList.add('hidden');
-  gameFrame.src = '';
 
-  if (g.isMulti) {
-    const entry = await resolveMultiEntry(g.name);
-    gameFrame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}/${entry}`;
-  } else {
-    gameFrame.src = `${GAMES_PATH}/${encodeURIComponent(g.name)}.html`;
-  }
+  gameFrame.src = g.isMulti
+    ? `${GAMES_PATH}/${encodeURIComponent(g.name)}/index.html`
+    : `${GAMES_PATH}/${encodeURIComponent(g.name)}.html`;
 }
 
 function exitGame() {
