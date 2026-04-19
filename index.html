@@ -19,7 +19,7 @@
         <span id="date-display">0000-00-00</span>
       </div>
       <button id="starboard-btn" class="pill-btn">★ STARBOARD</button>
-      <button id="request-btn" class="pill-btn">+ REQUEST GAME</button>
+      <button id="board-btn" class="pill-btn">📋 UPDATE BOARD</button>
       <button id="theme-toggle" class="pill-btn">
         <span id="theme-icon">◑</span> <span id="theme-label">LIGHT</span>
       </button>
@@ -80,6 +80,36 @@
       </div>
     </main>
 
+  </div>
+
+  <!-- UPDATE BOARD MODAL -->
+  <div id="board-modal" class="board-backdrop hidden">
+    <div class="board-panel">
+      <div class="board-header">
+        <span class="board-title">📋 UPDATE BOARD</span>
+        <div class="board-header-right">
+          <button id="board-edit-btn" class="pill-btn">✎ EDIT</button>
+          <button id="board-close" class="pill-btn exit-btn">✕</button>
+        </div>
+      </div>
+
+      <!-- READ VIEW -->
+      <div id="board-read" class="board-body"></div>
+
+      <!-- EDIT VIEW -->
+      <div id="board-edit" class="board-edit-wrap hidden">
+        <div class="board-edit-hint">
+          Edit each entry below. Separate entries with a blank line starting with <code>---</code>.
+          Changes are saved to this browser. Update <code>BOARD_UPDATES</code> in script.js to publish to everyone.
+        </div>
+        <textarea id="board-textarea" class="board-textarea" spellcheck="false"></textarea>
+        <div class="board-edit-actions">
+          <button id="board-save" class="pill-btn">✔ SAVE</button>
+          <button id="board-cancel" class="pill-btn">✕ CANCEL</button>
+          <button id="board-reset" class="pill-btn board-reset-btn">↺ RESET TO DEFAULT</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>

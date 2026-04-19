@@ -2,11 +2,28 @@
    QR-SCIENCE ARCADE — SCRIPT
    ============================================= */
 
-const REPO         = 'charliedayfockens-hue/qr-science';
-const GAMES_PATH   = 'assets/games';
-const API_URL      = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
-const REQUEST_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSeYC0XjyDXIJ06ONok-MgkyP1dqASSCabBcJ2ZIfPCU6Su3cQ/viewform?usp=publish-editor';
-const STARBOARD_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScS5LEUKXY8tD7Bmd6ggZE6WXYcSr0EKk8RJNUd2s1wlCnEjw/viewform?usp=publish-editor'; // ← change this link
+const REPO          = 'charliedayfockens-hue/qr-science';
+const GAMES_PATH    = 'assets/games';
+const API_URL       = `https://api.github.com/repos/${REPO}/contents/${GAMES_PATH}`;
+const STARBOARD_URL = 'https://change-me.example.com'; // ← change this link
+
+// ── UPDATE BOARD CONTENT ──────────────────────────────────────────────────────
+// Edit these entries to update what everyone sees on the board.
+// Each entry needs a date, title, and body.
+const BOARD_UPDATES = [
+  {
+    date:  '2026-04-19',
+    title: 'Welcome to QR-Science!',
+    body:  'The arcade is now live. Games are being added regularly.\nCheck back often for new additions.'
+  },
+  // Add more entries below — newest first:
+  // {
+  //   date:  'YYYY-MM-DD',
+  //   title: 'Update title here',
+  //   body:  'Write your update text here.'
+  // },
+];
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── STATE ──
 let ALL_GAMES    = [];   // [{name, isMulti}]
@@ -99,13 +116,99 @@ function applyTheme(t) {
   document.getElementById('theme-label').textContent = t === 'dark' ? 'LIGHT' : 'DARK';
 }
 
-// ── REQUEST BUTTON ──
-document.getElementById('request-btn').addEventListener('click', () => {
-  window.open(REQUEST_URL, '_blank', 'noopener,noreferrer');
-});
-
+// ── STARBOARD BUTTON ──
 document.getElementById('starboard-btn').addEventListener('click', () => {
   window.open(STARBOARD_URL, '_blank', 'noopener,noreferrer');
+});
+
+// ── UPDATE BOARD ──
+const boardModal    = document.getElementById('board-modal');
+const boardRead     = document.getElementById('board-read');
+const boardEdit     = document.getElementById('board-edit');
+const boardEditBtn  = document.getElementById('board-edit-btn');
+const boardTextarea = document.getElementById('board-textarea');
+const BOARD_KEY     = 'qrs-board-override';
+
+function serializeBoard(entries) {
+  return entries.map(e =>
+    `DATE: ${e.date}\nTITLE: ${e.title}\n\n${e.body}`
+  ).join('\n\n---\n\n');
+}
+
+function parseBoard(text) {
+  return text.split(/\n---\n/).map(block => {
+    const lines = block.trim().split('\n');
+    const date  = (lines.find(l => l.startsWith('DATE:'))  || '').replace('DATE:', '').trim();
+    const title = (lines.find(l => l.startsWith('TITLE:')) || '').replace('TITLE:', '').trim();
+    const body  = lines.filter(l => !l.startsWith('DATE:') && !l.startsWith('TITLE:')).join('\n').trim();
+    return { date, title, body };
+  }).filter(e => e.title || e.body);
+}
+
+function getActiveBoard() {
+  const override = localStorage.getItem(BOARD_KEY);
+  if (override) return parseBoard(override);
+  return BOARD_UPDATES;
+}
+
+function renderBoardRead() {
+  const entries = getActiveBoard();
+  if (!entries.length) {
+    boardRead.innerHTML = '<div class="board-empty">NO UPDATES YET.</div>';
+    return;
+  }
+  boardRead.innerHTML = entries.map(e => `
+    <div class="board-entry">
+      <div class="board-entry-header">
+        <span class="board-entry-title">${escHtml(e.title)}</span>
+        <span class="board-entry-date">${escHtml(e.date)}</span>
+      </div>
+      <div class="board-entry-body">${escHtml(e.body)}</div>
+    </div>`).join('');
+}
+
+function openBoard() {
+  boardModal.classList.remove('hidden');
+  showReadView();
+  renderBoardRead();
+}
+function closeBoard() {
+  boardModal.classList.add('hidden');
+  showReadView();
+}
+function showReadView() {
+  boardRead.classList.remove('hidden');
+  boardEdit.classList.add('hidden');
+  boardEditBtn.textContent = '✎ EDIT';
+}
+function showEditView() {
+  const entries = getActiveBoard();
+  boardTextarea.value = serializeBoard(entries);
+  boardRead.classList.add('hidden');
+  boardEdit.classList.remove('hidden');
+  boardEditBtn.textContent = '← BACK';
+}
+
+document.getElementById('board-btn').addEventListener('click', openBoard);
+document.getElementById('board-close').addEventListener('click', closeBoard);
+boardModal.addEventListener('click', e => { if (e.target === boardModal) closeBoard(); });
+
+boardEditBtn.addEventListener('click', () => {
+  boardEdit.classList.contains('hidden') ? showEditView() : showReadView();
+});
+
+document.getElementById('board-save').addEventListener('click', () => {
+  localStorage.setItem(BOARD_KEY, boardTextarea.value);
+  showReadView();
+  renderBoardRead();
+});
+
+document.getElementById('board-cancel').addEventListener('click', showReadView);
+
+document.getElementById('board-reset').addEventListener('click', () => {
+  localStorage.removeItem(BOARD_KEY);
+  showReadView();
+  renderBoardRead();
 });
 
 // ── SEARCH ──
